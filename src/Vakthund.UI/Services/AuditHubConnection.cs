@@ -1,33 +1,57 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
+using Vakthund.UI.Options;
+using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Services;
 
 public class AuditHubConnection : IAsyncDisposable
 {
     private readonly HubConnection _connection;
-    private readonly AuditStore _store;
+    private readonly IAuditStore _auditStore;
     private readonly MetricsStore _metricsStore;
+    private readonly ProxyConfigService _proxyConfigService;
+    private readonly ProxyRouteMatcher _proxyRouteMatcher;
+    private volatile ProxyConfig? _cachedConfig;
 
     public event Action<IReadOnlyList<AuditEntry>>? Requests;
     public event Action<HubConnectionState>? StateChanged;
 
     public HubConnectionState State => _connection.State;
 
-    public AuditHubConnection(IConfiguration configuration, AuditStore store, MetricsStore metricsStore)
+    public AuditHubConnection(IConfiguration configuration, IOptions<UiOptions> uiOptions,
+        IServiceProvider serviceProvider, MetricsStore metricsStore,
+        ProxyConfigService proxyConfigService, ProxyRouteMatcher proxyRouteMatcher)
     {
-        _store = store;
+        _auditStore = serviceProvider.GetRequiredKeyedService<IAuditStore>(uiOptions.Value.StorageMode);
         _metricsStore = metricsStore;
+        _proxyConfigService = proxyConfigService;
+        _proxyRouteMatcher = proxyRouteMatcher;
         string url = configuration["Proxy:AuditHubUrl"]!;
         _connection = new HubConnectionBuilder()
             .WithUrl(url)
             .WithAutomaticReconnect(new InfiniteRetryPolicy())
             .Build();
 
-        _connection.Closed += _ => { StateChanged?.Invoke(_connection.State); return Task.CompletedTask; };
-        _connection.Reconnecting += _ => { StateChanged?.Invoke(_connection.State); return Task.CompletedTask; };
-        _connection.Reconnected += _ => { StateChanged?.Invoke(_connection.State); return Task.CompletedTask; };
+        _connection.Closed += _ =>
+        {
+            StateChanged?.Invoke(_connection.State);
+            return Task.CompletedTask;
+        };
+        _connection.Reconnecting += _ =>
+        {
+            StateChanged?.Invoke(_connection.State);
+            return Task.CompletedTask;
+        };
+        _connection.Reconnected += connectionId =>
+        {
+            StateChanged?.Invoke(_connection.State);
+            _ = RefreshConfigAsync();
+            return Task.CompletedTask;
+        };
 
         _connection.On<string>("OnAuditBatch", HandleAuditBatch);
         _connection.On<string>("OnRequests", HandleRequests);
@@ -53,6 +77,7 @@ public class AuditHubConnection : IAsyncDisposable
             {
                 await _connection.StartAsync();
                 StateChanged?.Invoke(_connection.State);
+                _ = RefreshConfigAsync();
                 return;
             }
             catch
@@ -60,6 +85,15 @@ public class AuditHubConnection : IAsyncDisposable
                 StateChanged?.Invoke(_connection.State);
                 await Task.Delay(TimeSpan.FromSeconds(10));
             }
+        }
+    }
+
+    private async Task RefreshConfigAsync()
+    {
+        ProxyConfigLoadResult result = await _proxyConfigService.GetAsync();
+        if (result.Config is not null)
+        {
+            _cachedConfig = result.Config;
         }
     }
 
@@ -98,7 +132,16 @@ public class AuditHubConnection : IAsyncDisposable
 
     private void HandleEntries(IReadOnlyList<AuditEntry> entries)
     {
-        _store.AddRange(entries);
+        ProxyConfig? config = _cachedConfig;
+        if (config is not null)
+        {
+            foreach (AuditEntry entry in entries)
+            {
+                entry.MatchedRoute = _proxyRouteMatcher.FindMatchingRoute(config.Routes, entry.Path);
+            }
+        }
+
+        _auditStore.AddRange(entries);
         _metricsStore.AddRange(entries);
         Requests?.Invoke(entries);
     }
@@ -106,7 +149,8 @@ public class AuditHubConnection : IAsyncDisposable
 
 file class InfiniteRetryPolicy : IRetryPolicy
 {
-    private static readonly TimeSpan[] Defaults = [
+    private static readonly TimeSpan[] Defaults =
+    [
         TimeSpan.Zero,
         TimeSpan.FromSeconds(2),
         TimeSpan.FromSeconds(10),

@@ -5,7 +5,7 @@ using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Services;
 
-public class AuditStore(IOptions<UiOptions> options) : IAuditStore
+public class AuditMemoryStore(IOptions<UiOptions> options) : IAuditStore
 {
     private readonly Dictionary<Guid, AuditEntry> _entries = [];
     private readonly Lock _lock = new();
@@ -24,7 +24,10 @@ public class AuditStore(IOptions<UiOptions> options) : IAuditStore
         lock (_lock)
         {
             foreach (AuditEntry entry in entries)
+            {
                 _entries[entry.Id] = entry;
+            }
+
             Trim();
         }
     }
@@ -67,6 +70,19 @@ public class AuditStore(IOptions<UiOptions> options) : IAuditStore
 
     private void Trim()
     {
+        TimeSpan? retention = options.Value.RetentionPeriod;
+        if (retention.HasValue)
+        {
+            DateTimeOffset cutoff = DateTimeOffset.UtcNow - retention.Value;
+            foreach (Guid id in _entries.Values
+                         .Where(e => e.Timestamp < cutoff)
+                         .Select(e => e.Id)
+                         .ToArray())
+            {
+                _entries.Remove(id);
+            }
+        }
+
         int max = options.Value.MaxStoredAuditEntries;
         if (max == 0 || _entries.Count <= max)
         {

@@ -1,10 +1,12 @@
+using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
+using Vakthund.UI.Options;
 
 namespace Vakthund.UI.Services;
 
-public class MetricsStore
+public class MetricsStore(IOptions<UiOptions> options)
 {
-    private const int ChartWindowMinutes = 60;
+    private static readonly TimeSpan MinBucketWindow = TimeSpan.FromHours(1);
     private const int RecentWindowSeconds = 120;
 
     private readonly Dictionary<DateTime, MetricsBucket> _minuteBuckets = [];
@@ -99,16 +101,20 @@ public class MetricsStore
 
     private void Trim()
     {
-        DateTimeOffset anchor = _latestTimestamp ?? DateTimeOffset.UtcNow;
-        DateTime minuteCutoff = MinuteBucket(anchor).AddMinutes(-ChartWindowMinutes + 1);
-        DateTime secondCutoff = SecondBucket(anchor).AddSeconds(-RecentWindowSeconds + 1);
+        TimeSpan? retention = options.Value.RetentionPeriod;
+        TimeSpan bucketWindow = retention.HasValue && retention.Value > MinBucketWindow
+            ? retention.Value
+            : MinBucketWindow;
 
-        foreach (DateTime minute in _minuteBuckets.Keys.Where(minute => minute < minuteCutoff).ToArray())
+        DateTime minuteCutoff = MinuteBucket(DateTimeOffset.UtcNow - bucketWindow);
+        foreach (DateTime minute in _minuteBuckets.Keys.Where(m => m < minuteCutoff).ToArray())
         {
             _minuteBuckets.Remove(minute);
         }
 
-        foreach (DateTime second in _secondBuckets.Keys.Where(second => second < secondCutoff).ToArray())
+        DateTimeOffset anchor = _latestTimestamp ?? DateTimeOffset.UtcNow;
+        DateTime secondCutoff = SecondBucket(anchor).AddSeconds(-RecentWindowSeconds + 1);
+        foreach (DateTime second in _secondBuckets.Keys.Where(s => s < secondCutoff).ToArray())
         {
             _secondBuckets.Remove(second);
         }

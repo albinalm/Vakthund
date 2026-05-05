@@ -1,4 +1,6 @@
-﻿namespace Vakthund.Shared.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Vakthund.Shared.Models;
 
 public class AuditEntry
 {
@@ -24,4 +26,7 @@ public class AuditEntry
     public long? TargetDurationMs { get; set; }
     public long DurationMs { get; set; }
     public DateTimeOffset CompletedAt => Timestamp.AddMilliseconds(DurationMs);
+
+    [JsonIgnore]
+    public ProxyRouteInfo? MatchedRoute { get; set; }
 }

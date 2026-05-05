@@ -1,7 +1,9 @@
 using Radzen;
+using Vakthund.UI.Enums;
 using Vakthund.UI.Helpers;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
+using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Extensions;
 
@@ -13,7 +15,8 @@ public static class ServiceCollectionExtensions
         services.AddRazorComponents().AddInteractiveServerComponents();
         services.AddRadzenComponents();
         services.AddSingleton<AuditHubConnection>();
-        services.AddSingleton<AuditStore>();
+        services.AddKeyedSingleton<IAuditStore, AuditMemoryStore>(StorageMode.Memory);
+        services.AddKeyedSingleton<IAuditStore, AuditDiskStore>(StorageMode.Disk);
         services.AddSingleton<MetricsStore>();
         services.AddSingleton<MetricsService>();
         services.AddSingleton<JwtTokenParser>();

@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
+using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Components.Pages;
 
@@ -12,11 +13,12 @@ public partial class Home : IDisposable
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(1);
 
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
-    [Inject] private AuditStore AuditStore { get; set; } = null!;
+    [Inject] private IServiceProvider ServiceProvider { get; set; } = null!;
     [Inject] private MetricsStore MetricsStore { get; set; } = null!;
     [Inject] private MetricsService MetricsService { get; set; } = null!;
     [Inject] private IOptions<UiOptions> Options { get; set; } = null!;
 
+    private IAuditStore AuditStore { get; set; } = null!;
     private DashboardMetrics _metrics = null!;
     private int MaxAuditEntries => Options.Value.MaxStoredAuditEntries;
     private readonly CancellationTokenSource _refreshCts = new();
@@ -24,6 +26,7 @@ public partial class Home : IDisposable
 
     protected override void OnInitialized()
     {
+        AuditStore = ServiceProvider.GetRequiredKeyedService<IAuditStore>(Options.Value.StorageMode);
         _metrics = ComputeMetrics();
         _ = RefreshLoopAsync(_refreshCts.Token);
     }

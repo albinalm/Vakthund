@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using Vakthund.Shared.Models;
 using Vakthund.UI.Helpers;
 using Vakthund.UI.Models;
+using Vakthund.UI.Options;
 using Vakthund.UI.Services;
+using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Components.Pages;
 
@@ -11,13 +14,14 @@ public partial class RequestDetail
 {
     [Parameter] public Guid Id { get; set; }
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
-    [Inject] private AuditStore AuditStore { get; set; } = null!;
+    [Inject] private IServiceProvider ServiceProvider { get; set; } = null!;
     [Inject] private JwtTokenParser JwtTokenParser { get; set; } = null!;
     [Inject] private AuthVerdictService AuthVerdictService { get; set; } = null!;
     [Inject] private ProxyConfigService ProxyConfigService { get; set; } = null!;
     [Inject] private ProxyRouteMatcher ProxyRouteMatcher { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
-
+    [Inject] private IOptions<UiOptions> Options { get; set; } = null!;
+    private IAuditStore AuditStore { get; set; } = null!;
     private AuditEntry? _entry;
     private string _statusColor = "";
     private IReadOnlyList<ParsedToken> _parsedTokens = [];
@@ -34,6 +38,7 @@ public partial class RequestDetail
 
     protected override async Task OnParametersSetAsync()
     {
+        AuditStore = ServiceProvider.GetRequiredKeyedService<IAuditStore>(Options.Value.StorageMode);
         _entry = AuditStore.Get(Id);
         _statusColor = HttpStyle.StatusColor(_entry?.StatusCode);
         _bodyExpanded = false;
@@ -42,9 +47,8 @@ public partial class RequestDetail
         _headersExpanded = true;
         _cookiesExpanded = false;
         ProxyConfig? config = await LoadProxyConfigAsync();
-        ProxyRouteInfo? route = _entry is not null
-            ? ProxyRouteMatcher.FindMatchingRoute(config?.Routes, _entry.Path)
-            : null;
+        ProxyRouteInfo? route = _entry?.MatchedRoute
+            ?? (_entry is not null ? ProxyRouteMatcher.FindMatchingRoute(config?.Routes, _entry.Path) : null);
         _parsedTokens = _entry is not null
             ? JwtTokenParser.Parse(_entry.Headers, route?.Auth)
             : [];

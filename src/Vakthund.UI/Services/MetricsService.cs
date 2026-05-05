@@ -90,15 +90,4 @@ public class MetricsService
         };
     }
 
-    public DashboardMetrics Compute(IReadOnlyCollection<AuditEntry> all)
-    {
-        var store = new MetricsStore();
-        store.AddRange(all);
-
-        AuditEntry? latest = all
-            .OrderByDescending(entry => entry.Timestamp)
-            .FirstOrDefault();
-
-        return Compute(store.Snapshot(), all.Count, latest);
-    }
 }

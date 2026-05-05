@@ -1,6 +1,7 @@
 ﻿namespace Vakthund.UI.Enums;
 
-public enum RequestPersistMode
+public enum StorageMode
 {
-    
+    Memory,
+    Disk
 }

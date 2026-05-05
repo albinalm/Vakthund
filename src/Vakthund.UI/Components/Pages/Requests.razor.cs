@@ -8,6 +8,7 @@ using Vakthund.Shared.Models;
 using Vakthund.UI.Enums;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
+using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Components.Pages;
 
@@ -16,8 +17,10 @@ public partial class Requests : IDisposable
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
-    [Inject] private AuditStore AuditStore { get; set; } = null!;
+    [Inject] private IServiceProvider ServiceProvider { get; set; } = null!;
     [Inject] private IOptions<UiOptions> Options { get; set; } = null!;
+
+    private IAuditStore AuditStore { get; set; } = null!;
     [Inject] private DialogService DialogService { get; set; } = null!;
     [Inject] private ToastService ToastService { get; set; } = null!;
 
@@ -46,13 +49,18 @@ public partial class Requests : IDisposable
 
     protected override void OnInitialized()
     {
+        AuditStore = ServiceProvider.GetRequiredKeyedService<IAuditStore>(Options.Value.StorageMode);
         LoadEntries();
         _ = PollLoopAsync(_cts.Token);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!firstRender)
+        {
+            return;
+        }
+
         await SetTitle("Requests — Vakthund");
         await LoadAsync();
         StateHasChanged();
