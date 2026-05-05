@@ -9,12 +9,19 @@
         <div>
             <h1 class="font-display text-2xl font-semibold text-gray-100">Requests</h1>
             <p class="mt-1 text-sm text-gray-500">@_visibleEntries.Count() of @_entries.Count captured requests</p>
+            <p class="mt-1 text-xs text-gray-600">
+                This page keeps up to the latest @MaxAuditEntries.ToString("N0") requests. Older requests are removed from the table when that limit is reached.
+            </p>
         </div>
-        <div class="w-full max-w-md">
+        <div class="flex w-full flex-wrap items-center gap-3 md:w-auto">
             <input @bind="_searchText"
                    @bind:event="oninput"
-                   class="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-600 focus:border-amber-500"
+                   class="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-600 focus:border-amber-500 md:w-96"
                    placeholder="Filter by method, status, host, path, or query" />
+            <button @onclick="RefreshAsync"
+                    class="rounded border border-gray-700 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-500">
+                Refresh
+            </button>
         </div>
     </header>
 
@@ -56,6 +63,11 @@
                 <RadzenDataGridColumn TItem="AuditEntry" Property="DurationMs" Title="Duration" Width="110px">
                     <Template Context="entry">
                         <span class="font-mono text-sm text-gray-300">@entry.DurationMs ms</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="TargetDurationMs" Title="Target" Width="110px">
+                    <Template Context="entry">
+                        <span class="font-mono text-sm text-gray-300">@(entry.TargetDurationMs.HasValue ? $"{entry.TargetDurationMs} ms" : "-")</span>
                     </Template>
                 </RadzenDataGridColumn>
             </Columns>
