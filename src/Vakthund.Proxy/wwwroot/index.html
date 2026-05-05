@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vakthund Proxy</title>
+    <link rel="icon" href="/favicon.ico">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --background: #f3f2ef;
+            --foreground: #242424;
+            --muted: #5f5f5f;
+            --ring: rgba(226, 111, 3, 0.58);
+            --ring-soft: rgba(226, 111, 3, 0.12);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #1f1f1f;
+                --foreground: #f4f4f4;
+                --muted: #b8b8b8;
+                --ring: rgba(253, 156, 29, 0.64);
+                --ring-soft: rgba(253, 156, 29, 0.14);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: grid;
+            min-height: 100vh;
+            place-items: center;
+            background: var(--background);
+            color: var(--foreground);
+            font-family: "Space Grotesk", "Aptos", "Segoe UI", sans-serif;
+        }
+
+        main {
+            display: grid;
+            width: min(92vw, 34rem);
+            justify-items: center;
+            gap: 2rem;
+            padding: 2rem;
+        }
+
+        .logo-wrap {
+            position: relative;
+            display: grid;
+            width: clamp(13rem, 34vw, 21rem);
+            aspect-ratio: 1;
+            place-items: center;
+        }
+
+        .logo-wrap::before,
+        .logo-wrap::after {
+            position: absolute;
+            inset: 0;
+            content: "";
+            border: 0.14rem solid var(--ring);
+            border-radius: 999rem;
+            box-shadow: 0 0 4rem var(--ring-soft);
+            animation: ping 2.45s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        .logo-wrap::after {
+            animation-delay: 1.2s;
+        }
+
+        .logo {
+            z-index: 1;
+            width: 58%;
+            max-height: 72%;
+            object-fit: contain;
+            filter: drop-shadow(0 1.25rem 2.5rem rgba(0, 0, 0, 0.16));
+        }
+
+        .status {
+            margin: 0;
+            color: var(--muted);
+            font-size: clamp(0.95rem, 1.7vw, 1.15rem);
+            font-weight: 500;
+            letter-spacing: 0;
+            line-height: 1.2;
+            text-align: center;
+            transition:
+                opacity 180ms ease,
+                transform 180ms ease;
+            overflow-wrap: anywhere;
+        }
+
+        .status.is-changing {
+            opacity: 0;
+            transform: translateY(0.35rem);
+        }
+
+        @keyframes ping {
+            0% {
+                opacity: 0.85;
+                transform: scale(0.72);
+            }
+
+            72%,
+            100% {
+                opacity: 0;
+                transform: scale(1.18);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .logo-wrap::before,
+            .logo-wrap::after {
+                animation: none;
+                opacity: 0.54;
+                transform: scale(0.92);
+            }
+
+            .logo-wrap::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main aria-label="Vakthund proxy status">
+        <div class="logo-wrap" aria-hidden="true">
+            <img class="logo" src="logo.svg" alt="">
+        </div>
+        <p class="status" id="status">Waiting for proxied requests...</p>
+    </main>
+    <script>
+        const status = document.getElementById("status");
+        let pendingText = "";
+        let transitionTimeout = 0;
+
+        function setStatus(text) {
+            if (text === status.textContent || text === pendingText) {
+                return;
+            }
+
+            pendingText = text;
+            window.clearTimeout(transitionTimeout);
+            status.classList.add("is-changing");
+
+            transitionTimeout = window.setTimeout(() => {
+                status.textContent = pendingText;
+                status.classList.remove("is-changing");
+            }, 180);
+        }
+
+        function formatActivity(activity) {
+            const verb = activity.phase === "proxied" ? "Proxied" : "Proxying";
+            const suffix = activity.statusCode ? ` (${activity.statusCode})` : "";
+            return `${verb} ${activity.method} to ${activity.uri}${suffix}`;
+        }
+
+        if ("EventSource" in window) {
+            const activity = new EventSource("activity");
+            activity.onmessage = event => setStatus(formatActivity(JSON.parse(event.data)));
+            activity.onerror = () => setStatus("Waiting for proxied requests...");
+        }
+    </script>
+</body>
+</html>

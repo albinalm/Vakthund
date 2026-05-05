@@ -1,0 +1,50 @@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IDisposable
+
+<nav class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 bg-gray-900/95 px-6 py-3 backdrop-blur">
+    <div class="flex flex-wrap items-center gap-5">
+        <a href="/" class="flex items-center gap-3">
+            <img src="/logo.svg" alt="Vakthund" class="h-12 w-auto" />
+            <div class="leading-tight">
+                <div class="font-display text-lg font-semibold text-gray-100">Vakthund</div>
+                <div class="text-xs text-gray-500">Proxy audit</div>
+            </div>
+        </a>
+
+        <div class="flex items-center gap-1 rounded-lg border border-gray-800 bg-gray-950 p-1">
+            <NavLink href="/" Match="NavLinkMatch.All"
+                     class="rounded px-3 py-1.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-gray-100 transition-colors"
+                     ActiveClass="!bg-gray-800 !text-amber-500">
+                Dashboard
+            </NavLink>
+            <NavLink href="/requests"
+                     class="rounded px-3 py-1.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-gray-100 transition-colors"
+                     ActiveClass="!bg-gray-800 !text-amber-500">
+                Requests
+            </NavLink>
+            <NavLink href="/config"
+                     class="rounded px-3 py-1.5 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-gray-100 transition-colors"
+                     ActiveClass="!bg-gray-800 !text-amber-500">
+                Config
+            </NavLink>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-2 rounded-full border @(_connected ? "border-amber-500/40 bg-amber-500/10" : "border-red-500/40 bg-red-500/10") px-3 py-1.5">
+        <span class="relative flex h-2.5 w-2.5">
+            @if (_connected)
+            {
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+            }
+            else
+            {
+                <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
+            }
+        </span>
+        <span class="text-sm font-medium @(_connected ? "text-amber-500" : "text-red-400")">
+            @(_connected ? "Live" : "Disconnected")
+        </span>
+    </div>
+</nav>

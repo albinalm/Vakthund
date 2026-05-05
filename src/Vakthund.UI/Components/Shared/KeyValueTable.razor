@@ -1,0 +1,7 @@
+@foreach (var (key, value) in Entries)
+{
+    <div class="@RowClass(key) grid grid-cols-[220px_1fr] gap-4 px-4 py-2 text-sm font-mono">
+        <span class="text-gray-400 truncate">@key</span>
+        <span class="text-gray-200 break-all">@value</span>
+    </div>
+}

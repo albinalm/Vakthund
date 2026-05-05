@@ -1,0 +1,131 @@
+@page "/"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* ReSharper disable once Html.PathError *@
+
+<PageTitle>Dashboard — Vakthund</PageTitle>
+
+<div class="mx-auto max-w-7xl space-y-6 px-6 py-6">
+    <header class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="font-display text-2xl font-semibold text-gray-100">Dashboard</h1>
+            <p class="mt-1 text-sm text-gray-500">Live traffic captured from the proxy audit stream.</p>
+        </div>
+        <a href="/requests" class="inline-flex items-center rounded border border-gray-700 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-500">
+            View requests
+        </a>
+    </header>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <div class="text-sm font-medium text-gray-500">Total requests</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.TotalRequests</div>
+        </div>
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <div class="text-sm font-medium text-gray-500">Requests/min</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.RequestsPerMin</div>
+        </div>
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <div class="text-sm font-medium text-gray-500">Avg response</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.AvgResponseTime.ToString("F0") ms</div>
+        </div>
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <div class="text-sm font-medium text-gray-500">Error rate</div>
+            <div class="mt-2 font-display text-3xl font-semibold @(_metrics.ErrorRate > 10 ? "text-red-400" : "text-gray-100")">
+                @_metrics.ErrorRate.ToString("F1")%
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4 xl:col-span-2">
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-gray-300">Requests over time</h2>
+                <span class="text-xs text-gray-500">Last 10 minutes</span>
+            </div>
+            @if (_metrics.RequestsOverTime.Count > 0)
+            {
+                <RadzenChart Style="height: 240px">
+                    <RadzenAreaSeries Data="@_metrics.RequestsOverTime" CategoryProperty="Time" ValueProperty="Value"
+                                      Title="Requests" Smooth="true" />
+                    <RadzenCategoryAxis />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+                    <RadzenLegend Visible="false" />
+                </RadzenChart>
+            }
+            else
+            {
+                <div class="flex h-60 items-center justify-center rounded border border-dashed border-gray-700 text-sm text-gray-600">Waiting for traffic</div>
+            }
+        </div>
+
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <h2 class="mb-3 text-sm font-semibold text-gray-300">Status codes</h2>
+            @if (_metrics.StatusDistribution.Count > 0)
+            {
+                <RadzenChart Style="height: 240px">
+                    <RadzenDonutSeries Data="@_metrics.StatusDistribution" CategoryProperty="Label" ValueProperty="Count">
+                        <TitleTemplate>
+                            <div style="text-align:center">
+                                <div style="font-size:1.25rem;font-weight:700;color:#f0f0f0">@_metrics.TotalRequests</div>
+                                <div style="font-size:0.75rem;color:#6b6b6b">total</div>
+                            </div>
+                        </TitleTemplate>
+                    </RadzenDonutSeries>
+                </RadzenChart>
+            }
+            else
+            {
+                <div class="flex h-60 items-center justify-center rounded border border-dashed border-gray-700 text-sm text-gray-600">No responses yet</div>
+            }
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4 xl:col-span-2">
+            <h2 class="mb-3 text-sm font-semibold text-gray-300">Response time</h2>
+            @if (_metrics.ResponseTimeOverTime.Count > 0)
+            {
+                <RadzenChart Style="height: 200px">
+                    <RadzenLineSeries Data="@_metrics.ResponseTimeOverTime" CategoryProperty="Time" ValueProperty="Value"
+                                      Title="Avg ms" Smooth="true">
+                        <RadzenMarkers Visible="false" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+                    <RadzenLegend Visible="false" />
+                </RadzenChart>
+            }
+            else
+            {
+                <div class="flex h-48 items-center justify-center rounded border border-dashed border-gray-700 text-sm text-gray-600">No timings yet</div>
+            }
+        </div>
+
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <h2 class="mb-3 text-sm font-semibold text-gray-300">Latest request</h2>
+            @if (_metrics.LatestRequest is null)
+            {
+                <div class="flex h-48 items-center justify-center rounded border border-dashed border-gray-700 text-sm text-gray-600">No request captured</div>
+            }
+            else
+            {
+                <a href="@($"/request/{_metrics.LatestRequest.Id}")" class="block rounded border border-gray-800 bg-gray-950 p-3 transition-colors hover:border-amber-500">
+                    <div class="flex items-center gap-2">
+                        <span class="rounded bg-blue-600 px-2 py-1 text-xs font-bold text-white">@_metrics.LatestRequest.Method</span>
+                        <span class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(_metrics.LatestRequest.StatusCode)">@_metrics.LatestRequest.StatusCode</span>
+                    </div>
+                    <div class="mt-3 break-all font-mono text-sm text-gray-200">@_metrics.LatestRequest.Uri</div>
+                    <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
+                        <span>@_metrics.LatestRequest.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                        <span>@_metrics.LatestRequest.DurationMs ms</span>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+
+</div>

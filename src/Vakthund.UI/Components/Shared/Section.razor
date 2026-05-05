@@ -1,0 +1,22 @@
+<div class="rounded-lg overflow-hidden border border-gray-700">
+    <button @onclick="OnToggle"
+            class="w-full flex items-center justify-between px-4 py-3 bg-gray-900 hover:bg-gray-800 transition-colors text-left">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-gray-300 uppercase tracking-wider">@Title</span>
+            @if (Count.HasValue)
+            {
+                <span class="text-xs text-gray-500">(@Count)</span>
+            }
+        </div>
+        <span class="material-symbols-outlined text-gray-400 text-base transition-transform @ChevronClass">
+            expand_more
+        </span>
+    </button>
+
+    @if (Expanded)
+    {
+        <div class="border-t border-gray-800 bg-gray-950">
+            @ChildContent
+        </div>
+    }
+</div>

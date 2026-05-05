@@ -1,0 +1,39 @@
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: Vakthund.Proxy/Dockerfile
+    pull_policy: never
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - TARGET=${TARGET:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  ui:
+    build:
+      context: .
+      dockerfile: Vakthund.UI/Dockerfile
+    pull_policy: never
+    user: root
+    ports:
+      - "8082:8080"
+    environment:
+      - HUB=http://proxy:8081/connect/audit
+      # JWE decryption (optional) — set JWE_KEY_TYPE and JWE_KEY to decode encrypted tokens
+      # - JWE_KEY_TYPE=${JWE_KEY_TYPE:-}
+      # - JWE_KEY=${JWE_KEY:-}
+    volumes:
+      - ui-keys:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      proxy:
+        condition: service_healthy
+
+volumes:
+  ui-keys:

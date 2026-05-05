@@ -1,0 +1,64 @@
+@page "/requests"
+@using Vakthund.Shared.Models
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Requests — Vakthund</PageTitle>
+
+<div class="mx-auto max-w-7xl space-y-4 px-6 py-6">
+    <header class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="font-display text-2xl font-semibold text-gray-100">Requests</h1>
+            <p class="mt-1 text-sm text-gray-500">@_visibleEntries.Count() of @_entries.Count captured requests</p>
+        </div>
+        <div class="w-full max-w-md">
+            <input @bind="_searchText"
+                   @bind:event="oninput"
+                   class="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-600 focus:border-amber-500"
+                   placeholder="Filter by method, status, host, path, or query" />
+        </div>
+    </header>
+
+    <div class="overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+        <RadzenDataGrid @ref="_grid" Data="@_visibleEntries" TItem="AuditEntry" AllowSorting="true" AllowPaging="true" PageSize="10" PageSizeOptions="_pageSizeOptions"
+                        EmptyText="No matching requests." AllowColumnResize="true" RowClick="OnRowClick" PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true">
+            <Columns>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Timestamp" Title="Time" Width="150px">
+                    <Template Context="entry">
+                        <span class="font-mono text-xs text-gray-400">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Method" Title="Method" Width="100px">
+                    <Template Context="entry">
+                        <span class="rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(entry.Method)">@entry.Method</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="StatusCode" Title="Status" Width="95px">
+                    <Template Context="entry">
+                        <span class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(entry.StatusCode)">@entry.StatusCode</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Host" Title="Host" Width="180px">
+                    <Template Context="entry">
+                        <span class="font-mono text-sm text-gray-300">@entry.Host</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Title="Target">
+                    <Template Context="entry">
+                        <div class="min-w-0">
+                            <div class="truncate font-mono text-sm text-gray-100">@entry.Path</div>
+                            @if (!string.IsNullOrWhiteSpace(entry.Query))
+                            {
+                                <div class="truncate font-mono text-xs text-gray-500">@entry.Query</div>
+                            }
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="DurationMs" Title="Duration" Width="110px">
+                    <Template Context="entry">
+                        <span class="font-mono text-sm text-gray-300">@entry.DurationMs ms</span>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+</div>

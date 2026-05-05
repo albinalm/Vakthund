@@ -1,0 +1,79 @@
+@page "/config"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Configuration</PageTitle>
+
+<div class="mx-auto max-w-4xl space-y-4 px-6 py-6">
+
+    <h1 class="font-display text-xl font-semibold text-gray-100">Configuration</h1>
+
+    @if (_loading)
+    {
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-8 text-center text-sm text-gray-500">
+            Loading...
+        </div>
+    }
+    else if (_error)
+    {
+        <div class="rounded-lg border border-red-800 bg-red-950/50 p-8 text-center text-sm text-red-400">
+            Could not reach the proxy. Make sure it is running.
+        </div>
+    }
+    else if (_config is not null)
+    {
+        <Section Title="Routes" Count="_config.Routes.Count" Expanded="true">
+            <div class="divide-y divide-gray-800">
+                @foreach (var route in _config.Routes)
+                {
+                    <div class="grid grid-cols-2 gap-4 px-4 py-3 font-mono text-sm">
+                        <span class="text-gray-400">@route.Path</span>
+                        <span class="truncate text-gray-200">@route.Target</span>
+                    </div>
+                }
+            </div>
+        </Section>
+
+        <Section Title="Capture" Expanded="true">
+            <div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+                <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                    <div class="text-xs text-gray-500">Request Body</div>
+                    <div class="mt-1 font-mono text-sm @(_config.MaxBodyBytes == 0 ? "text-gray-600" : "text-gray-200")">
+                        @FormatBytes(_config.MaxBodyBytes)
+                    </div>
+                </div>
+                <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                    <div class="text-xs text-gray-500">Response Body</div>
+                    <div class="mt-1 font-mono text-sm @(_config.MaxResponseBodyBytes == 0 ? "text-gray-600" : "text-gray-200")">
+                        @FormatBytes(_config.MaxResponseBodyBytes)
+                    </div>
+                </div>
+            </div>
+        </Section>
+
+        <Section Title="Queue" Expanded="true">
+            <div class="p-4">
+                <div class="rounded border border-gray-800 bg-gray-950 p-3 w-fit">
+                    <div class="text-xs text-gray-500">Max Queued Entries</div>
+                    <div class="mt-1 font-mono text-sm text-gray-200">@_config.MaxQueuedEntries.ToString("N0")</div>
+                </div>
+            </div>
+        </Section>
+    }
+
+    <Section Title="Token Decryption" Expanded="true">
+        <div class="p-4">
+            <div class="rounded border border-gray-800 bg-gray-950 p-3 w-fit">
+                <div class="text-xs text-gray-500">JWE Key Type</div>
+                @if (UiOptions.Value.Jwe.KeyType.HasValue)
+                {
+                    <div class="mt-1 font-mono text-sm text-emerald-400">@UiOptions.Value.Jwe.KeyType.Value</div>
+                }
+                else
+                {
+                    <div class="mt-1 font-mono text-sm text-gray-600">Not configured</div>
+                }
+            </div>
+        </div>
+    </Section>
+
+</div>

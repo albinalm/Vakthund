@@ -1,0 +1,110 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    /* Warm charcoal palette inspired by logo body colors */
+    --color-gray-100: #f0f0f0;
+    --color-gray-200: #e0e0e0;
+    --color-gray-300: #c5c5c5;
+    --color-gray-400: #9a9a9a;
+    --color-gray-500: #6b6b6b;
+    --color-gray-600: #4a4a4a;
+    --color-gray-700: #3a3a3a;
+    --color-gray-800: #202020;
+    --color-gray-900: #191919;
+    --color-gray-950: #0f0f0f;
+
+    /* Logo accent colors: amber/orange from logo wing highlights */
+    --color-amber-300: #feb840;
+    --color-amber-400: #fdac2d;
+    --color-amber-500: #fd9c1d;
+    --color-amber-600: #e26f03;
+    --color-amber-700: #b85902;
+
+    /* Typography */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+    html, body {
+        @apply bg-gray-800 text-gray-100;
+        font-family: var(--font-sans), serif;
+        min-height: 100%;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-display), serif;
+    }
+
+    code, pre, kbd, samp {
+        font-family: var(--font-mono), serif;
+    }
+
+    .material-symbols-outlined {
+        font-family: "Material Symbols", serif;
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+    }
+}
+
+:root {
+    --rz-text-font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --rz-text-color: #f0f0f0;
+    --rz-text-secondary-color: #9a9a9a;
+    --rz-text-disabled-color: #4a4a4a;
+    --rz-text-title-color: #f0f0f0;
+    --rz-body-background-color: #202020;
+
+    --rz-base-50:  #f0f0f0;
+    --rz-base-100: #e0e0e0;
+    --rz-base-200: #c5c5c5;
+    --rz-base-300: #9a9a9a;
+    --rz-base-400: #6b6b6b;
+    --rz-base-500: #4a4a4a;
+    --rz-base-600: #3a3a3a;
+    --rz-base-700: #3a3a3a;
+    --rz-base-800: #191919;
+    --rz-base-900: #0f0f0f;
+
+    --rz-primary: #fd9c1d;
+    --rz-secondary: #e26f03;
+    --rz-success: #5dbf74;
+    --rz-warning: #fac152;
+    --rz-danger: #f9777f;
+    --rz-info: #2cc8c8;
+
+    --rz-grid-background-color: #272727;
+    --rz-grid-border: 1px solid #3a3a3a;
+    --rz-grid-header-background-color: #191919;
+    --rz-grid-stripe-background-color: #272727;
+    --rz-grid-stripe-odd-background-color: #272727;
+    --rz-grid-stripe-even-background-color: #2d2d2d;
+    --rz-grid-cell-color: #f0f0f0;
+    --rz-grid-hover-background-color: #2a2a2a;
+    --rz-grid-selected-background-color: #2a2a2a;
+    --rz-grid-column-resizer-helper-background-color: #fd9c1d;
+    --rz-grid-header-filter-icon-active-color: #fd9c1d;
+    --rz-grid-foot-background-color: #191919;
+    --rz-grid-filter-focus-color: #fd9c1d;
+    --rz-grid-apply-filter-button-background-color: #fd9c1d;
+
+    --rz-series-1: #fd9c1d;
+    --rz-series-2: #4d99f9;
+    --rz-series-3: #f9777f;
+    --rz-series-4: #9432ef;
+    --rz-series-5: #fac152;
+    --rz-series-6: #e26f03;
+    --rz-series-7: #2cc8c8;
+    --rz-series-8: #b885f0;
+}
