@@ -68,7 +68,7 @@
                     <RadzenAreaSeries Data="@_metrics.RequestsOverTime" CategoryProperty="Time" ValueProperty="Value"
                                       Title="Requests" Smooth="true" />
                     <RadzenCategoryAxis Formatter="@FormatRequestTimeAxis" />
-                    <RadzenValueAxis>
+                    <RadzenValueAxis Min="0" Max="@RequestChartAxisMax">
                         <RadzenGridLines Visible="true" />
                     </RadzenValueAxis>
                     <RadzenLegend Visible="false" />

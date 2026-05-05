@@ -22,6 +22,11 @@ public partial class Home : IDisposable
     private IAuditStore AuditStore { get; set; } = null!;
     private DashboardMetrics _metrics = null!;
     private int MaxAuditEntries => Options.Value.MaxStoredAuditEntries;
+    private double RequestChartAxisMax =>
+        _metrics.RequestsOverTime.Count == 0
+            ? 0
+            : _metrics.RequestsOverTime.Max(point => point.Value);
+
     private readonly CancellationTokenSource _refreshCts = new();
     private bool _disposed;
 
