@@ -43,6 +43,27 @@ public class AuditStore(IOptions<VakthundOptions> options)
         }
     }
 
+    public int Count
+    {
+        get
+        {
+            lock (_lock)
+                return _entries.Count;
+        }
+    }
+
+    public AuditEntry? Latest()
+    {
+        lock (_lock)
+            return _entries.Values.OrderByDescending(e => e.Timestamp).FirstOrDefault();
+    }
+
+    public IReadOnlyCollection<AuditEntry> Snapshot()
+    {
+        lock (_lock)
+            return _entries.Values.ToArray();
+    }
+
     private void Trim()
     {
         int max = options.Value.MaxAuditEntries;
