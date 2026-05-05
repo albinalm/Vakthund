@@ -85,13 +85,22 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
             {
                 object key = BuildKey(_jwe);
                 string decrypted = JWT.Decode(token, key);
-                using JsonDocument doc = JsonDocument.Parse(decrypted);
-                payloadJson = JsonSerializer.Serialize(doc, JsonOptions);
 
-                if (doc.RootElement.TryGetProperty("exp", out JsonElement exp) && exp.TryGetInt64(out long expUnix))
+                if (decrypted.AsSpan().Count('.') == 2)
                 {
-                    expiry = DateTimeOffset.FromUnixTimeSeconds(expUnix);
-                    expired = expiry < DateTimeOffset.UtcNow;
+                    // cty:JWT — decrypted payload is itself a JWT (nested token)
+                    (_, payloadJson, expiry, expired) = TryParseJwt(decrypted);
+                }
+                else
+                {
+                    using JsonDocument doc = JsonDocument.Parse(decrypted);
+                    payloadJson = JsonSerializer.Serialize(doc, JsonOptions);
+
+                    if (doc.RootElement.TryGetProperty("exp", out JsonElement exp) && exp.TryGetInt64(out long expUnix))
+                    {
+                        expiry = DateTimeOffset.FromUnixTimeSeconds(expUnix);
+                        expired = expiry < DateTimeOffset.UtcNow;
+                    }
                 }
             }
             catch (Exception ex)
