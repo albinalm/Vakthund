@@ -1,8 +1,7 @@
 <p align="center">
-  <img src="media/logo.png" alt="Vakthund logo" width="150">
+  <img src="media/banner.png" alt="Vakthund logo" width="300">
 </p>
 
-# Vakthund
 
 Vakthund is a local HTTP inspection proxy for development. Put it between a client and the service you are building, send traffic through it, and watch the requests appear in a Blazor UI as they happen.
 
