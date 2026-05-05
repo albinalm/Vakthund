@@ -34,10 +34,14 @@ else
                 <span class="text-sm text-gray-500">@_entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
             </div>
             <h1 class="mt-4 break-all font-mono text-base text-gray-100">@_entry.Uri</h1>
-            <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Duration</div>
                     <div class="mt-1 font-mono text-sm text-gray-200">@_entry.DurationMs ms</div>
+                </div>
+                <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                    <div class="text-xs text-gray-500">Target</div>
+                    <div class="mt-1 font-mono text-sm text-gray-200">@(_entry.TargetDurationMs.HasValue ? $"{_entry.TargetDurationMs} ms" : "-")</div>
                 </div>
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Host</div>
