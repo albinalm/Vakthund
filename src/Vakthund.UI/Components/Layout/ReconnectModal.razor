@@ -1,29 +1,45 @@
-﻿<script type="module" src="@Assets["Components/Layout/ReconnectModal.razor.js"]"></script>
+<script type="module" src="@Assets["Components/Layout/ReconnectModal.razor.js"]"></script>
 
 <dialog id="components-reconnect-modal" data-nosnippet>
     <div class="components-reconnect-container">
-        <div class="components-rejoining-animation" aria-hidden="true">
-            <div></div>
-            <div></div>
+        <div class="components-reconnect-brand" aria-hidden="true">
+            <img src="/logo.svg" alt="" class="components-reconnect-logo"/>
+            <span class="components-rejoining-animation">
+                <span></span>
+                <span></span>
+            </span>
         </div>
-        <p class="components-reconnect-first-attempt-visible">
-            Rejoining the server...
-        </p>
-        <p class="components-reconnect-repeated-attempt-visible">
-            Rejoin failed... trying again in <span id="components-seconds-to-next-attempt"></span> seconds.
-        </p>
-        <p class="components-reconnect-failed-visible">
-            Failed to rejoin.<br/>Please retry or reload the page.
-        </p>
+
+        <div class="components-reconnect-copy">
+            <h2 class="components-reconnect-first-attempt-visible">Rejoining the server</h2>
+            <p class="components-reconnect-first-attempt-visible">
+                Attempting to restore the live proxy audit session.
+            </p>
+
+            <h2 class="components-reconnect-repeated-attempt-visible">Connection interrupted</h2>
+            <p class="components-reconnect-repeated-attempt-visible">
+                Rejoin failed. Trying again in <span id="components-seconds-to-next-attempt"></span> seconds.
+            </p>
+
+            <h2 class="components-reconnect-failed-visible">Failed to rejoin</h2>
+            <p class="components-reconnect-failed-visible">
+                Retry the session or reload the page to continue.
+            </p>
+
+            <h2 class="components-pause-visible">Session paused</h2>
+            <p class="components-pause-visible">
+                The session has been paused by the server.
+            </p>
+
+            <h2 class="components-resume-failed-visible">Failed to resume</h2>
+            <p class="components-resume-failed-visible">
+                Retry the session or reload the page to continue.
+            </p>
+        </div>
+
         <button id="components-reconnect-button" class="components-reconnect-failed-visible">
             Retry
         </button>
-        <p class="components-pause-visible">
-            The session has been paused by the server.
-        </p>
-        <p class="components-resume-failed-visible">
-            Failed to resume the session.<br/>Please retry or reload the page.
-        </p>
         <button id="components-resume-button" class="components-pause-visible components-resume-failed-visible">
             Resume
         </button>
