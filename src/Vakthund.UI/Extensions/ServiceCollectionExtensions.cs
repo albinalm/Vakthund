@@ -14,6 +14,7 @@ public static class ServiceCollectionExtensions
         services.AddRadzenComponents();
         services.AddSingleton<AuditHubConnection>();
         services.AddSingleton<AuditStore>();
+        services.AddSingleton<MetricsStore>();
         services.AddSingleton<MetricsService>();
         services.AddSingleton<JwtTokenParser>();
         services.AddTransient<ProxyConfigService>();
