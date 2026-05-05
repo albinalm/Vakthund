@@ -35,7 +35,9 @@ public static class WebApplicationBuilderExtensions
         {
             const string dockerDefault = "/etc/vakthund/routes.yaml";
             if (File.Exists(dockerDefault))
+            {
                 builder.Configuration["Vakthund:RoutesFile"] = dockerDefault;
+            }
         }
 
         return builder;
@@ -50,7 +52,9 @@ public static class WebApplicationBuilderExtensions
         {
             string targetUrl = builder.Configuration["Proxy:TargetUrl"]?.Trim() ?? "";
             if (string.IsNullOrEmpty(targetUrl))
+            {
                 throw new InvalidOperationException("No routes configured. Set the TARGET env var, provide a routes.yaml, or configure Vakthund:RoutesFile in appsettings.");
+            }
 
             routes = [new VakthundRoute { Path = "/**", Target = targetUrl }];
         }

@@ -53,8 +53,16 @@ public static class ServiceCollectionExtensions
 
     private static string ToYarpPath(string path)
     {
-        if (path is "/**" or "/") return "{**catch-all}";
-        if (path.EndsWith("/**")) return path[..^3] + "/{**catch-all}";
+        if (path is "/**" or "/")
+        {
+            return "{**catch-all}";
+        }
+
+        if (path.EndsWith("/**"))
+        {
+            return path[..^3] + "/{**catch-all}";
+        }
+
         return path;
     }
 }

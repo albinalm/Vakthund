@@ -22,7 +22,9 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
     private ParsedToken? TryParseHeader(string name, string value)
     {
         if (name.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+        {
             return ParseAuthHeader(name, value);
+        }
 
         string rawToken = value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
             ? value["Bearer ".Length..].Trim()
@@ -35,14 +37,18 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
     {
         int spaceIdx = value.IndexOf(' ');
         if (spaceIdx < 0)
+        {
             return new ParsedToken { HeaderName = name, Scheme = value };
+        }
 
         string scheme = value[..spaceIdx];
         string rawToken = value[(spaceIdx + 1)..].Trim();
 
         if (scheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase))
+        {
             return TryDecodeToken(name, scheme, rawToken)
-                ?? new ParsedToken { HeaderName = name, Scheme = scheme, RawToken = rawToken };
+                   ?? new ParsedToken { HeaderName = name, Scheme = scheme, RawToken = rawToken };
+        }
 
         if (scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
         {
@@ -58,13 +64,18 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
         int partCount = token.AsSpan().Count('.') + 1;
 
         if (partCount == 5)
+        {
             return DecodeJwe(name, scheme, token);
+        }
 
         if (partCount == 3)
         {
             (string? headerJson, string? payloadJson, DateTimeOffset? expiry, bool expired) = TryParseJwt(token);
             if (headerJson is null && payloadJson is null)
+            {
                 return null;
+            }
+
             return new ParsedToken { HeaderName = name, Scheme = scheme, RawToken = token, JwtHeaderJson = headerJson, JwtPayloadJson = payloadJson, JwtExpiry = expiry, JwtExpired = expired };
         }
 
@@ -150,7 +161,9 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
     {
         string[] parts = token.Split('.');
         if (parts.Length != 3)
+        {
             return (null, null, null, false);
+        }
 
         string? headerJson = DecodeBase64UrlJson(parts[0]);
         string? payloadJson = DecodeBase64UrlJson(parts[1]);

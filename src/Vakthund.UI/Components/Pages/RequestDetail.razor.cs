@@ -49,7 +49,11 @@ public partial class RequestDetail
         foreach (string pair in body.Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
             int idx = pair.IndexOf('=');
-            if (idx < 0) continue;
+            if (idx < 0)
+            {
+                continue;
+            }
+
             result[Uri.UnescapeDataString(pair[..idx].Replace('+', ' '))] =
                 Uri.UnescapeDataString(pair[(idx + 1)..].Replace('+', ' '));
         }
@@ -59,7 +63,9 @@ public partial class RequestDetail
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
             await SetTitle(_entry is not null ? $"{_entry.Method} {_entry.Path} — Vakthund" : "Request — Vakthund");
+        }
     }
 
     private async Task SetTitle(string title) =>

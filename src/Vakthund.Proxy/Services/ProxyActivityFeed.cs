@@ -55,7 +55,9 @@ public class ProxyActivityFeed
         {
             _recent.Enqueue(activity);
             if (_recent.Count > MaxRecent)
+            {
                 _recent.Dequeue();
+            }
         }
 
         foreach (Channel<ProxyActivity> subscriber in _subscribers.Values)

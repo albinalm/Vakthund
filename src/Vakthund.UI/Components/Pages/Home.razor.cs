@@ -31,7 +31,9 @@ public partial class Home : IDisposable
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
             await SetTitle("Dashboard — Vakthund");
+        }
     }
 
     private async Task RefreshLoopAsync(CancellationToken cancellationToken)

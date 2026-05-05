@@ -13,7 +13,11 @@ public static class HttpStyle
 
     public static string? ContentTypeShortName(string? contentType)
     {
-        if (contentType is null) return null;
+        if (contentType is null)
+        {
+            return null;
+        }
+
         string baseType = contentType.Split(';')[0].Trim().ToLowerInvariant();
         return baseType switch
         {

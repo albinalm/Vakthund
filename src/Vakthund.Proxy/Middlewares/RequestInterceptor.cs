@@ -68,7 +68,9 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
                 {
                     entry.ResponseBody = await new StreamReader(buffer).ReadToEndAsync();
                     if (string.IsNullOrEmpty(entry.ResponseBody))
+                    {
                         entry.ResponseBody = null;
+                    }
                 }
 
                 buffer.Position = 0;

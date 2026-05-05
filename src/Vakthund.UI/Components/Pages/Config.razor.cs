@@ -35,7 +35,9 @@ public partial class Config
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
             await SetTitle("Configuration — Vakthund");
+        }
     }
 
     private async Task SetTitle(string title) =>

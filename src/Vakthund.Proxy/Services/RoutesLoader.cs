@@ -14,7 +14,9 @@ public static class RoutesLoader
     public static List<VakthundRoute>? TryLoad(string? filePath)
     {
         if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
             return null;
+        }
 
         string yaml = File.ReadAllText(filePath);
         var file = Deserializer.Deserialize<RoutesFile>(yaml);

@@ -34,7 +34,9 @@ public partial class Requests
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
             await SetTitle("Requests — Vakthund");
+        }
     }
 
     private async Task SetTitle(string title) =>
