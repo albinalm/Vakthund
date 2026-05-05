@@ -2,7 +2,6 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    /* Warm charcoal palette inspired by logo body colors */
     --color-gray-100: #f0f0f0;
     --color-gray-200: #e0e0e0;
     --color-gray-300: #c5c5c5;
@@ -14,7 +13,6 @@
     --color-gray-900: #191919;
     --color-gray-950: #0f0f0f;
 
-    /* Logo accent colors: amber/orange from logo wing highlights */
     --color-amber-300: #feb840;
     --color-amber-400: #fdac2d;
     --color-amber-500: #fd9c1d;
@@ -25,7 +23,6 @@
     --color-violet-400: #b885f0;
     --color-red-400: #f9777f;
 
-    /* Typography */
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -111,83 +108,144 @@
     --rz-series-6: #e26f03;
     --rz-series-7: #2cc8c8;
     --rz-series-8: #b885f0;
+
+    --hljs-base: #f0f0f0;
+    --hljs-attr: #fdac2d;
+    --hljs-string: #5dbf74;
+    --hljs-number: #b885f0;
+    --hljs-literal: #f9777f;
+    --hljs-keyword: #fd9c1d;
+    --hljs-builtin: #feb840;
+    --hljs-comment: #6b6b6b;
+    --hljs-punct: #9a9a9a;
+}
+
+html:not(.dark) {
+    --color-gray-100: #1c1c1c;
+    --color-gray-200: #333333;
+    --color-gray-300: #4a4a4a;
+    --color-gray-400: #6b6b6b;
+    --color-gray-500: #8a8a8a;
+    --color-gray-600: #b8b8b8;
+    --color-gray-700: #d8d8d8;
+    --color-gray-800: #ebebeb;
+    --color-gray-900: #f5f5f5;
+    --color-gray-950: #fafafa;
+
+    --rz-text-color: #1c1c1c;
+    --rz-text-secondary-color: #6b6b6b;
+    --rz-text-disabled-color: #b8b8b8;
+    --rz-text-title-color: #1c1c1c;
+    --rz-body-background-color: #ebebeb;
+
+    --rz-base-50:  #1c1c1c;
+    --rz-base-100: #333333;
+    --rz-base-200: #4a4a4a;
+    --rz-base-300: #6b6b6b;
+    --rz-base-400: #8a8a8a;
+    --rz-base-500: #b8b8b8;
+    --rz-base-600: #d8d8d8;
+    --rz-base-700: #d8d8d8;
+    --rz-base-800: #f5f5f5;
+    --rz-base-900: #fafafa;
+
+    --rz-grid-background-color: #f0f0f0;
+    --rz-grid-border: 1px solid #d8d8d8;
+    --rz-grid-header-background-color: #f5f5f5;
+    --rz-grid-stripe-background-color: #f0f0f0;
+    --rz-grid-stripe-odd-background-color: #f0f0f0;
+    --rz-grid-stripe-even-background-color: #eaeaea;
+    --rz-grid-cell-color: #1c1c1c;
+    --rz-grid-hover-background-color: #e5e5e5;
+    --rz-grid-selected-background-color: #e5e5e5;
+    --rz-grid-foot-background-color: #f5f5f5;
+
+    --hljs-base: #1c1c1c;
+    --hljs-attr: #b07300;
+    --hljs-string: #2e7d32;
+    --hljs-number: #6d28d9;
+    --hljs-literal: #b91c1c;
+    --hljs-keyword: #b07300;
+    --hljs-builtin: #a05c00;
+    --hljs-comment: #777777;
+    --hljs-punct: #555555;
 }
 
 .hljs {
-    color: var(--color-gray-100);
+    color: var(--hljs-base);
     background: transparent;
 }
 
 .hljs-attr,
 .hljs-attribute {
-    color: var(--color-amber-400);
+    color: var(--hljs-attr);
 }
 
 .hljs-string,
 .hljs-addition {
-    color: var(--color-emerald-400);
+    color: var(--hljs-string);
 }
 
 .hljs-number {
-    color: var(--color-violet-400);
+    color: var(--hljs-number);
 }
 
 .hljs-literal {
-    color: var(--color-red-400);
+    color: var(--hljs-literal);
 }
 
 .hljs-keyword,
 .hljs-selector-tag {
-    color: var(--color-amber-500);
+    color: var(--hljs-keyword);
 }
 
 .hljs-built_in,
 .hljs-type {
-    color: var(--color-amber-300);
+    color: var(--hljs-builtin);
 }
 
 .hljs-name,
 .hljs-tag {
-    color: var(--color-amber-400);
+    color: var(--hljs-attr);
 }
 
 .hljs-title,
 .hljs-title.class_,
 .hljs-title.function_ {
-    color: var(--color-amber-400);
+    color: var(--hljs-attr);
 }
 
 .hljs-comment,
 .hljs-quote {
-    color: var(--color-gray-500);
+    color: var(--hljs-comment);
     font-style: italic;
 }
 
 .hljs-punctuation,
 .hljs-operator {
-    color: var(--color-gray-400);
+    color: var(--hljs-punct);
 }
 
 .hljs-variable,
 .hljs-template-variable,
 .hljs-symbol {
-    color: var(--color-amber-300);
+    color: var(--hljs-builtin);
 }
 
 .hljs-selector-id,
 .hljs-selector-class,
 .hljs-selector-attr,
 .hljs-selector-pseudo {
-    color: var(--color-amber-400);
+    color: var(--hljs-attr);
 }
 
 .hljs-meta,
 .hljs-meta .hljs-keyword {
-    color: var(--color-gray-400);
+    color: var(--hljs-punct);
 }
 
 .hljs-deletion {
-    color: var(--color-red-400);
+    color: var(--hljs-literal);
 }
 
 .hljs-emphasis { font-style: italic; }
