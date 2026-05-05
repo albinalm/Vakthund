@@ -5,6 +5,35 @@
 
     <h1 class="font-display text-xl font-semibold text-gray-100">Configuration</h1>
 
+    <Section Title="UI" Expanded="_uiExpanded" OnToggle="ToggleUi">
+        <div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+            <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                <div class="text-xs text-gray-500">Audit Hub URL</div>
+                <div class="mt-1 truncate font-mono text-sm @AuditHubTextClass">
+                    @FormatOptional(AuditHubUrl, "Not configured")
+                </div>
+            </div>
+            <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                <div class="text-xs text-gray-500">Storage Mode</div>
+                <div class="mt-1 font-mono text-sm text-gray-200">@UiConfig.StorageMode</div>
+            </div>
+            <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                <div class="text-xs text-gray-500">Max Stored Entries</div>
+                <div class="mt-1 font-mono text-sm text-gray-200">@FormatEntryLimit(UiConfig.MaxStoredAuditEntries)</div>
+            </div>
+            <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                <div class="text-xs text-gray-500">Storage Path</div>
+                <div class="mt-1 truncate font-mono text-sm @StoragePathTextClass">
+                    @FormatStoragePath(UiConfig)
+                </div>
+            </div>
+            <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                <div class="text-xs text-gray-500">Retention</div>
+                <div class="mt-1 font-mono text-sm @RetentionTextClass">@FormatRetention(UiConfig)</div>
+            </div>
+        </div>
+    </Section>
+
     @if (_loading)
     {
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-8 text-center text-sm text-gray-500">
