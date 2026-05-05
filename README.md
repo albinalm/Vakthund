@@ -1,23 +1,78 @@
+<p align="center">
+  <img src="media/logo.png" alt="Vakthund logo" width="150">
+</p>
+
 # Vakthund
 
-A developer tool for inspecting HTTP request traffic in real time. Vakthund sits as a YARP reverse proxy and captures incoming requests, exposing headers, authorization tokens, JWT payloads, and other auth-related metadata through a Blazor Server UI.
+Vakthund is a local HTTP inspection proxy for development. Put it between a client and the service you are building, send traffic through it, and watch the requests appear in a Blazor UI as they happen.
 
-Built for local dev sessions where you want visibility into what your client is actually sending without touching your application code.
+It is useful when you need to see what a browser, mobile app, integration, webhook sender, or test client is really sending. Vakthund captures headers, query parameters, cookies, request bodies, response bodies, status codes, timings, and authorization metadata without requiring changes to the target application.
 
-## Features
+## What It Does
 
-- Real-time request log via SignalR
-- Header and authorization inspection
-- JWT payload decoding
-- Request history for the current session
+- Proxies HTTP traffic with YARP.
+- Captures live request and response details.
+- Streams captured requests from the proxy to the UI over SignalR.
+- Decodes bearer JWTs and basic auth headers in the request detail view.
+- Can decrypt JWE tokens when a key is configured.
+- Shows dashboard metrics, request history, route configuration, and per-request details.
 
-## Stack
+Vakthund keeps captured traffic in memory for the current run. It is designed for local development and controlled environments, not for long-term storage or production traffic retention.
 
-- ASP.NET Core + YARP (proxy)
-- Blazor Server (UI)
-- SignalR (live updates)
+## Documentation
+
+- [Getting Started](docs/getting-started.md)
+- [How Vakthund Works](docs/how-it-works.md)
+- [Configuration](docs/configuration.md)
+- [Using the UI](docs/using-the-ui.md)
+- [Development](docs/development.md)
+
+## Quick Start
+
+The recommended setup is Docker Compose with two services:
+
+- `proxy`, which accepts client traffic and forwards it to your target service.
+- `ui`, which connects to the proxy management hub and displays captured requests.
+
+For a single upstream service, set `TARGET` on the proxy:
+
+```yaml
+services:
+  proxy:
+    build:
+      context: ./src
+      dockerfile: Vakthund.Proxy/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      TARGET: "http://host.docker.internal:5000"
+
+  ui:
+    build:
+      context: ./src
+      dockerfile: Vakthund.UI/Dockerfile
+    ports:
+      - "8082:8080"
+    environment:
+      HUB: "http://proxy:8081/connect/audit"
+    depends_on:
+      - proxy
+```
+
+Then send client traffic to `http://localhost:8080` and open the UI at `http://localhost:8082`.
+
+You can also open `http://localhost:8081` in a browser to confirm the proxy management port is running.
+
+For multiple upstreams or path-based routing, mount a routes file instead. See [Getting Started](docs/getting-started.md) for the full Compose example and the `routes.yaml` format.
 
 ## Projects
 
-- `Vakthund.Proxy` — YARP middleware, audit capture, SignalR hub
-- `Vakthund.UI` — Blazor Server frontend
+- `Vakthund.Proxy`: reverse proxy, request capture middleware, management endpoints, and SignalR audit hub.
+- `Vakthund.UI`: Blazor Server frontend for dashboard, request list, request details, and configuration.
+- `Vakthund.Shared`: shared models used by both services.
+- `Vakthund.Tests`: unit tests for parsing, routing, metrics, and storage behavior.
+
+## License
+
+Vakthund is licensed under the terms in [LICENSE](LICENSE).
