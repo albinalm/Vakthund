@@ -57,14 +57,18 @@ else
         @if (!string.IsNullOrEmpty(_entry.Body))
         {
             <Section Title="Request Body" Expanded="_bodyExpanded" OnToggle="ToggleBody">
-                <pre class="p-4 text-sm text-gray-200 font-mono overflow-x-auto whitespace-pre-wrap break-all">@_entry.Body</pre>
+                <div class="p-3">
+                    <CodeBlock Content="@_entry.Body" />
+                </div>
             </Section>
         }
 
         @if (!string.IsNullOrEmpty(_entry.ResponseBody))
         {
             <Section Title="Response Body" Expanded="_responseBodyExpanded" OnToggle="ToggleResponseBody">
-                <pre class="p-4 text-sm text-gray-200 font-mono overflow-x-auto whitespace-pre-wrap break-all">@_entry.ResponseBody</pre>
+                <div class="p-3">
+                    <CodeBlock Content="@_entry.ResponseBody" />
+                </div>
             </Section>
         }
 
@@ -127,14 +131,14 @@ else
                                     {
                                         <div>
                                             <div class="mb-1 text-xs font-medium text-gray-500">Header</div>
-                                            <pre class="overflow-x-auto rounded border border-gray-800 bg-gray-950 p-3 font-mono text-xs text-gray-200">@token.JwtHeaderJson</pre>
+                                            <CodeBlock Content="@token.JwtHeaderJson" Language="json" />
                                         </div>
                                     }
                                     @if (token.JwtPayloadJson is not null)
                                     {
                                         <div>
                                             <div class="mb-1 text-xs font-medium text-gray-500">Payload</div>
-                                            <pre class="overflow-x-auto rounded border border-gray-800 bg-gray-950 p-3 font-mono text-xs text-gray-200">@token.JwtPayloadJson</pre>
+                                            <CodeBlock Content="@token.JwtPayloadJson" Language="json" />
                                         </div>
                                     }
                                 </div>

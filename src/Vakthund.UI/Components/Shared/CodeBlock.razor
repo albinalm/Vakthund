@@ -1,0 +1,66 @@
+@inject IJSRuntime JS
+
+<pre class="overflow-x-auto rounded border border-gray-800 bg-gray-950 p-3 font-mono text-xs leading-relaxed"><code @ref="_codeRef" class="language-@_language">@_formatted</code></pre>
+
+@code {
+    [Parameter, EditorRequired] public string Content { get; set; } = "";
+    [Parameter] public string? Language { get; set; }
+
+    private ElementReference _codeRef;
+    private string _formatted = "";
+    private string _language = "plaintext";
+
+    protected override void OnParametersSet()
+    {
+        if (Language is not null)
+        {
+            _formatted = Content;
+            _language = Language;
+        }
+        else
+        {
+            (_formatted, _language) = FormatAndDetect(Content);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("hljs.highlightElement", _codeRef);
+            }
+            catch
+            {
+                // highlight.js unavailable (e.g. offline, CDN blocked)
+            }
+        }
+    }
+
+    private static (string Formatted, string Language) FormatAndDetect(string raw)
+    {
+        ReadOnlySpan<char> trimmed = raw.AsSpan().TrimStart();
+
+        if (trimmed.StartsWith("{") || trimmed.StartsWith("["))
+        {
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(raw);
+                return (JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true }), "json");
+            }
+            catch { }
+        }
+
+        if (trimmed.StartsWith("<"))
+        {
+            try
+            {
+                return (XDocument.Parse(raw).ToString(), "xml");
+            }
+            catch { }
+        }
+
+        return (raw, "plaintext");
+    }
+}
