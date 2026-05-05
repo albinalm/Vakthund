@@ -9,7 +9,7 @@ These settings belong to `Vakthund.Proxy`.
 | Environment variable | App setting | Default | Purpose |
 | --- | --- | --- | --- |
 | `TARGET` | `Proxy:TargetUrl` | `https://localhost:5001` in appsettings | Single upstream URL used when no routes file is loaded. |
-| `ROUTES_FILE` | `Vakthund:RoutesFile` | `/etc/vakthund/routes.yaml` when that file exists | YAML routes file path. |
+| `ROUTES_FILE` | `Vakthund:RoutesFile` | `routes.local.yaml` in development when that file exists; `/etc/vakthund/routes.yaml` when that file exists | YAML routes file path. |
 | `MAX_BODY_BYTES` | `Vakthund:MaxBodyBytes` | `65536` | Maximum request body size to capture. Use `0` to disable request body capture. |
 | `MAX_RESPONSE_BODY_BYTES` | `Vakthund:MaxResponseBodyBytes` | `65536` in code | Maximum response body size to capture. Use `0` to disable response body capture. |
 | `MAX_QUEUED_ENTRIES` | `Vakthund:MaxQueuedEntries` | `10000` | Proxy audit queue capacity. Oldest entries are dropped when full. |
@@ -57,6 +57,10 @@ Each route has:
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally.
 
 Use specific paths for individual services, and add a broad `/**` fallback only when you want unmatched traffic to go somewhere.
+
+During local debug, `Vakthund.Proxy` automatically checks for `routes.local.yaml` in the proxy project directory when no explicit routes file is configured. The file is ignored by Git so each developer can keep machine-specific targets and auth expectations locally. Use `src/Vakthund.Proxy/routes.local.example.yaml` as the committed shape.
+
+Explicit route file configuration still wins. Relative paths in `Vakthund:RoutesFile` or `ROUTES_FILE` are resolved from the proxy content root.
 
 ## Route Auth Expectations
 

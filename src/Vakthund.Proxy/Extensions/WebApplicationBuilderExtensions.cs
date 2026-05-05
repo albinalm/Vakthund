@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Hosting;
 using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Services;
 
@@ -31,21 +32,16 @@ public static class WebApplicationBuilderExtensions
         {
             builder.Configuration["Vakthund:RoutesFile"] = routesFile;
         }
-        else if (!builder.Configuration.GetSection("Vakthund:RoutesFile").Exists())
-        {
-            const string dockerDefault = "/etc/vakthund/routes.yaml";
-            if (File.Exists(dockerDefault))
-            {
-                builder.Configuration["Vakthund:RoutesFile"] = dockerDefault;
-            }
-        }
 
         return builder;
     }
 
     public static WebApplicationBuilder AddVakthundProxy(this WebApplicationBuilder builder)
     {
-        string? routesFilePath = builder.Configuration["Vakthund:RoutesFile"];
+        string? routesFilePath = RoutesFileResolver.Resolve(
+            builder.Configuration["Vakthund:RoutesFile"],
+            builder.Environment.ContentRootPath,
+            builder.Environment.IsDevelopment());
         List<VakthundRoute>? routes = RoutesLoader.TryLoad(routesFilePath);
 
         if (routes is null)

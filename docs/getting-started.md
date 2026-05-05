@@ -143,6 +143,8 @@ routes:
 
 Open a captured request and check the auth verdict to see whether the bearer token matches the configured route expectations.
 
+For local debugging without Docker, create `src/Vakthund.Proxy/routes.local.yaml`. When the proxy runs in `Development` and no explicit `ROUTES_FILE` or `Vakthund:RoutesFile` is set, Vakthund loads that file automatically. The local file is ignored by Git; `src/Vakthund.Proxy/routes.local.example.yaml` shows the expected shape.
+
 ## Mounting a Routes File
 
 Create `routes.yaml` beside your Compose file:

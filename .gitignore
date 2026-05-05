@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 *.env
+src/Vakthund.Proxy/routes.local.yaml
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
