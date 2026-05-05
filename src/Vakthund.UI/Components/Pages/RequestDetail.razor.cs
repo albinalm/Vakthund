@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Vakthund.Shared.Models;
 using Vakthund.UI.Helpers;
 using Vakthund.UI.Models;
@@ -9,6 +10,7 @@ namespace Vakthund.UI.Components.Pages;
 public partial class RequestDetail
 {
     [Parameter] public Guid Id { get; set; }
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private AuditStore AuditStore { get; set; } = null!;
     [Inject] private JwtTokenParser JwtTokenParser { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
@@ -53,6 +55,15 @@ public partial class RequestDetail
         }
         return result;
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await SetTitle(_entry is not null ? $"{_entry.Method} {_entry.Path} — Vakthund" : "Request — Vakthund");
+    }
+
+    private async Task SetTitle(string title) =>
+        await JsRuntime.InvokeVoidAsync("setDocumentTitle", title);
 
     private void NavigateBack() => Nav.NavigateTo("/requests");
 

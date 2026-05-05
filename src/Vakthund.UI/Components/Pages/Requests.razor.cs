@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 using Radzen;
 using Radzen.Blazor;
 using Vakthund.Shared.Models;
@@ -10,6 +11,7 @@ namespace Vakthund.UI.Components.Pages;
 
 public partial class Requests
 {
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private AuditStore AuditStore { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IOptions<VakthundOptions> Options { get; set; } = null!;
@@ -28,6 +30,15 @@ public partial class Requests
     {
         LoadEntries();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await SetTitle("Requests — Vakthund");
+    }
+
+    private async Task SetTitle(string title) =>
+        await JsRuntime.InvokeVoidAsync("setDocumentTitle", title);
 
     private async Task RefreshAsync()
     {

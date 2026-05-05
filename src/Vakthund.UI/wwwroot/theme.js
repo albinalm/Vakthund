@@ -1,3 +1,7 @@
+function setDocumentTitle(title) {
+    document.title = title;
+}
+
 (function () {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
@@ -10,6 +11,7 @@ public partial class Home : IDisposable
 {
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(1);
 
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private AuditStore AuditStore { get; set; } = null!;
     [Inject] private MetricsStore MetricsStore { get; set; } = null!;
     [Inject] private MetricsService MetricsService { get; set; } = null!;
@@ -24,6 +26,12 @@ public partial class Home : IDisposable
     {
         _metrics = ComputeMetrics();
         _ = RefreshLoopAsync(_refreshCts.Token);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await SetTitle("Dashboard — Vakthund");
     }
 
     private async Task RefreshLoopAsync(CancellationToken cancellationToken)
@@ -66,6 +74,9 @@ public partial class Home : IDisposable
 
     private DashboardMetrics ComputeMetrics() =>
         MetricsService.Compute(MetricsStore.Snapshot(), AuditStore.Count, AuditStore.Latest());
+
+    private async Task SetTitle(string title) =>
+        await JsRuntime.InvokeVoidAsync("setDocumentTitle", title);
 
     public void Dispose()
     {
