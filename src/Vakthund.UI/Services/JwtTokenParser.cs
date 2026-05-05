@@ -5,6 +5,7 @@ using Jose;
 using Microsoft.Extensions.Options;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
+using Base64UrlHelper = Vakthund.UI.Helpers.Base64Url;
 
 namespace Vakthund.UI.Services;
 
@@ -70,13 +71,24 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
 
         if (partCount == 3)
         {
-            (string? headerJson, string? payloadJson, DateTimeOffset? expiry, bool expired) = TryParseJwt(token);
+            (string? headerJson, string? payloadJson, DateTimeOffset? expiry, bool expired, TokenClaimSummary? claims, TokenHeaderSummary? header) = TryParseJwt(token);
             if (headerJson is null && payloadJson is null)
             {
                 return null;
             }
 
-            return new ParsedToken { HeaderName = name, Scheme = scheme, RawToken = token, JwtHeaderJson = headerJson, JwtPayloadJson = payloadJson, JwtExpiry = expiry, JwtExpired = expired };
+            return new ParsedToken
+            {
+                HeaderName = name,
+                Scheme = scheme,
+                RawToken = token,
+                JwtHeaderJson = headerJson,
+                JwtPayloadJson = payloadJson,
+                Header = header,
+                JwtExpiry = expiry,
+                JwtExpired = expired,
+                Claims = claims
+            };
         }
 
         return null;
@@ -87,7 +99,9 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
         string? headerJson = DecodeBase64UrlJson(token.AsSpan()[..token.IndexOf('.')].ToString());
         string? payloadJson = null;
         string? decryptError = null;
+        TokenHeaderSummary? header = TryParseHeaderSummary(headerJson);
         DateTimeOffset? expiry = null;
+        TokenClaimSummary? claims = null;
         var expired = false;
 
         if (_jwe.KeyType.HasValue && !string.IsNullOrEmpty(_jwe.Key))
@@ -100,16 +114,17 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
                 if (decrypted.AsSpan().Count('.') == 2)
                 {
                     // cty:JWT — decrypted payload is itself a JWT (nested token)
-                    (_, payloadJson, expiry, expired) = TryParseJwt(decrypted);
+                    (_, payloadJson, expiry, expired, claims, _) = TryParseJwt(decrypted);
                 }
                 else
                 {
                     using JsonDocument doc = JsonDocument.Parse(decrypted);
                     payloadJson = JsonSerializer.Serialize(doc, JsonOptions);
+                    claims = ParseClaimSummary(doc.RootElement);
 
-                    if (doc.RootElement.TryGetProperty("exp", out JsonElement exp) && exp.TryGetInt64(out long expUnix))
+                    if (claims.ExpiresAt.HasValue)
                     {
-                        expiry = DateTimeOffset.FromUnixTimeSeconds(expUnix);
+                        expiry = claims.ExpiresAt.Value;
                         expired = expiry < DateTimeOffset.UtcNow;
                     }
                 }
@@ -128,8 +143,10 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
             IsJwe = true,
             JwtHeaderJson = headerJson,
             JwtPayloadJson = payloadJson,
+            Header = header,
             JwtExpiry = expiry,
             JwtExpired = expired,
+            Claims = claims,
             JweDecryptError = decryptError
         };
     }
@@ -157,17 +174,19 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
         return ec;
     }
 
-    private static (string? HeaderJson, string? PayloadJson, DateTimeOffset? Expiry, bool Expired) TryParseJwt(string token)
+    private static (string? HeaderJson, string? PayloadJson, DateTimeOffset? Expiry, bool Expired, TokenClaimSummary? Claims, TokenHeaderSummary? Header) TryParseJwt(string token)
     {
         string[] parts = token.Split('.');
         if (parts.Length != 3)
         {
-            return (null, null, null, false);
+            return (null, null, null, false, null, null);
         }
 
         string? headerJson = DecodeBase64UrlJson(parts[0]);
         string? payloadJson = DecodeBase64UrlJson(parts[1]);
+        TokenHeaderSummary? header = TryParseHeaderSummary(headerJson);
         DateTimeOffset? expiry = null;
+        TokenClaimSummary? claims = null;
         bool expired = false;
 
         if (payloadJson is not null)
@@ -175,9 +194,10 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
             try
             {
                 using JsonDocument doc = JsonDocument.Parse(payloadJson);
-                if (doc.RootElement.TryGetProperty("exp", out JsonElement exp) && exp.TryGetInt64(out long expUnix))
+                claims = ParseClaimSummary(doc.RootElement);
+                if (claims.ExpiresAt.HasValue)
                 {
-                    expiry = DateTimeOffset.FromUnixTimeSeconds(expUnix);
+                    expiry = claims.ExpiresAt.Value;
                     expired = expiry < DateTimeOffset.UtcNow;
                 }
             }
@@ -187,7 +207,127 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
             }
         }
 
-        return (headerJson, payloadJson, expiry, expired);
+        return (headerJson, payloadJson, expiry, expired, claims, header);
+    }
+
+    private static TokenHeaderSummary? TryParseHeaderSummary(string? headerJson)
+    {
+        if (headerJson is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(headerJson);
+            return new TokenHeaderSummary
+            {
+                Algorithm = ReadString(doc.RootElement, "alg"),
+                KeyId = ReadString(doc.RootElement, "kid"),
+                Type = ReadString(doc.RootElement, "typ")
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static TokenClaimSummary ParseClaimSummary(JsonElement payload)
+    {
+        return new TokenClaimSummary
+        {
+            Subject = ReadString(payload, "sub"),
+            Issuer = ReadString(payload, "iss"),
+            Audiences = ReadStringList(payload, "aud"),
+            Scopes = ReadScopes(payload),
+            Roles = ReadStringList(payload, "roles"),
+            ClientId = ReadString(payload, "client_id"),
+            AuthorizedParty = ReadString(payload, "azp"),
+            ExpiresAt = ReadUnixTime(payload, "exp"),
+            NotBefore = ReadUnixTime(payload, "nbf"),
+            IssuedAt = ReadUnixTime(payload, "iat")
+        };
+    }
+
+    private static IReadOnlyList<string> ReadScopes(JsonElement payload)
+    {
+        List<string> scopes = [];
+        scopes.AddRange(ReadSpaceSeparatedString(payload, "scope"));
+        scopes.AddRange(ReadSpaceSeparatedString(payload, "scp"));
+        return scopes.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static IReadOnlyList<string> ReadSpaceSeparatedString(JsonElement payload, string propertyName)
+    {
+        if (!payload.TryGetProperty(propertyName, out JsonElement property))
+        {
+            return [];
+        }
+
+        if (property.ValueKind == JsonValueKind.Array)
+        {
+            return ReadArrayValues(property);
+        }
+
+        if (property.ValueKind != JsonValueKind.String)
+        {
+            return [];
+        }
+
+        string? value = property.GetString();
+        return string.IsNullOrWhiteSpace(value)
+            ? []
+            : value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static IReadOnlyList<string> ReadStringList(JsonElement payload, string propertyName)
+    {
+        if (!payload.TryGetProperty(propertyName, out JsonElement property))
+        {
+            return [];
+        }
+
+        if (property.ValueKind == JsonValueKind.Array)
+        {
+            return ReadArrayValues(property);
+        }
+
+        if (property.ValueKind == JsonValueKind.String)
+        {
+            string? value = property.GetString();
+            return string.IsNullOrWhiteSpace(value) ? [] : [value];
+        }
+
+        return [];
+    }
+
+    private static IReadOnlyList<string> ReadArrayValues(JsonElement array)
+    {
+        var values = new List<string>();
+        foreach (JsonElement item in array.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+            {
+                values.Add(item.GetString()!);
+            }
+        }
+
+        return values;
+    }
+
+    private static string? ReadString(JsonElement payload, string propertyName)
+    {
+        return payload.TryGetProperty(propertyName, out JsonElement property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
+    }
+
+    private static DateTimeOffset? ReadUnixTime(JsonElement payload, string propertyName)
+    {
+        return payload.TryGetProperty(propertyName, out JsonElement property) && property.TryGetInt64(out long unix)
+            ? DateTimeOffset.FromUnixTimeSeconds(unix)
+            : null;
     }
 
     private static (string? Username, string? Password) TryParseBasic(string credentials)
@@ -210,10 +350,7 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
     {
         try
         {
-            string padded = base64Url.Replace('-', '+').Replace('_', '/');
-            padded += (padded.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
-            byte[] bytes = Convert.FromBase64String(padded);
-            string json = Encoding.UTF8.GetString(bytes);
+            string json = Base64UrlHelper.DecodeString(base64Url);
             using JsonDocument doc = JsonDocument.Parse(json);
             return JsonSerializer.Serialize(doc, JsonOptions);
         }

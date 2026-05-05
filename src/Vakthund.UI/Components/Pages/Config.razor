@@ -28,9 +28,36 @@
             <div class="divide-y divide-gray-800">
                 @foreach (var route in _config.Routes)
                 {
-                    <div class="grid grid-cols-2 gap-4 px-4 py-3 font-mono text-sm">
-                        <span class="text-gray-400">@route.Path</span>
-                        <span class="truncate text-gray-200">@route.Target</span>
+                    <div class="grid grid-cols-1 gap-2 px-4 py-3 text-sm md:grid-cols-2">
+                        <span class="font-mono text-gray-400">@route.Path</span>
+                        <div class="min-w-0">
+                            <div class="truncate font-mono text-gray-200">@route.Target</div>
+                            @if (route.Auth is not null)
+                            {
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    @if (route.Auth.Issuer is not null)
+                                    {
+                                        <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">iss @route.Auth.Issuer</span>
+                                    }
+                                    @if (route.Auth.Audience is not null)
+                                    {
+                                        <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">aud @route.Auth.Audience</span>
+                                    }
+                                    @foreach (string audience in route.Auth.Audiences)
+                                    {
+                                        <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">aud @audience</span>
+                                    }
+                                    @foreach (string scope in route.Auth.Scopes)
+                                    {
+                                        <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">scope @scope</span>
+                                    }
+                                    @foreach (string role in route.Auth.Roles)
+                                    {
+                                        <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">role @role</span>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 }
             </div>

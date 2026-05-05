@@ -17,7 +17,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MetricsStore>();
         services.AddSingleton<MetricsService>();
         services.AddSingleton<JwtTokenParser>();
+        services.AddSingleton<JwtSignatureValidator>();
+        services.AddSingleton<AuthVerdictService>();
         services.AddTransient<ProxyConfigService>();
+        services.AddHttpClient();
 
         string hubUrl = config["Proxy:AuditHubUrl"] ?? "";
         string managementUrl = hubUrl.EndsWith("/connect/audit")

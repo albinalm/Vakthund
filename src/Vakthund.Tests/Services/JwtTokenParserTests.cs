@@ -13,7 +13,22 @@ public class JwtTokenParserTests
     public void Parse_DecodesBearerJwt_FromAuthorizationHeader()
     {
         var parser = new JwtTokenParser(Options.Create(new VakthundOptions()));
-        string token = BuildJwt(new { alg = "none", typ = "JWT" }, new { sub = "user-123", exp = 4_102_444_800 });
+        string token = BuildJwt(new
+        {
+            alg = "none",
+            typ = "JWT"
+        }, new
+        {
+            sub = "user-123",
+            iss = "https://issuer.example",
+            aud = "orders-api",
+            scope = "orders.read orders.write",
+            roles = new[] { "admin" },
+            client_id = "client-123",
+            exp = 4_102_444_800,
+            nbf = 1_700_000_000,
+            iat = 1_600_000_000
+        });
 
         ParsedToken parsed = Assert.Single(parser.Parse(new Dictionary<string, string>
         {
@@ -28,6 +43,18 @@ public class JwtTokenParserTests
 
         using JsonDocument payload = JsonDocument.Parse(parsed.JwtPayloadJson!);
         Assert.Equal("user-123", payload.RootElement.GetProperty("sub").GetString());
+        Assert.NotNull(parsed.Header);
+        Assert.Equal("none", parsed.Header.Algorithm);
+        Assert.Equal("JWT", parsed.Header.Type);
+        Assert.NotNull(parsed.Claims);
+        Assert.Equal("user-123", parsed.Claims.Subject);
+        Assert.Equal("https://issuer.example", parsed.Claims.Issuer);
+        Assert.Equal(["orders-api"], parsed.Claims.Audiences);
+        Assert.Equal(["orders.read", "orders.write"], parsed.Claims.Scopes);
+        Assert.Equal(["admin"], parsed.Claims.Roles);
+        Assert.Equal("client-123", parsed.Claims.ClientId);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000), parsed.Claims.NotBefore);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_600_000_000), parsed.Claims.IssuedAt);
     }
 
     [Fact]

@@ -13,11 +13,15 @@ public partial class RequestDetail
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private AuditStore AuditStore { get; set; } = null!;
     [Inject] private JwtTokenParser JwtTokenParser { get; set; } = null!;
+    [Inject] private AuthVerdictService AuthVerdictService { get; set; } = null!;
+    [Inject] private ProxyConfigService ProxyConfigService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
 
     private AuditEntry? _entry;
     private string _statusColor = "";
     private IReadOnlyList<ParsedToken> _parsedTokens = [];
+    private ParsedToken? _bearerToken;
+    private AuthVerdict? _authVerdict;
 
     private bool _bodyExpanded;
     private bool _responseBodyExpanded;
@@ -25,8 +29,9 @@ public partial class RequestDetail
     private bool _headersExpanded;
     private bool _cookiesExpanded;
     private bool _authExpanded = true;
+    private bool _authVerdictExpanded = true;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _entry = AuditStore.Get(Id);
         _statusColor = HttpStyle.StatusColor(_entry?.StatusCode);
@@ -38,6 +43,11 @@ public partial class RequestDetail
         _parsedTokens = _entry is not null
             ? JwtTokenParser.Parse(_entry.Headers)
             : [];
+        _bearerToken = _parsedTokens.FirstOrDefault(IsBearerToken);
+        ProxyConfig? config = await LoadProxyConfigAsync();
+        _authVerdict = _entry is not null && ShouldShowAuthVerdict(_entry, _parsedTokens)
+            ? await AuthVerdictService.EvaluateAsync(_entry, _parsedTokens, config)
+            : null;
     }
 
     private bool IsFormEncoded(string? contentType) =>
@@ -60,6 +70,12 @@ public partial class RequestDetail
         return result;
     }
 
+    private async Task<ProxyConfig?> LoadProxyConfigAsync()
+    {
+        ProxyConfigLoadResult result = await ProxyConfigService.GetAsync();
+        return result.Config;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -78,5 +94,26 @@ public partial class RequestDetail
     private void ToggleQueries() => _queriesExpanded = !_queriesExpanded;
     private void ToggleHeaders() => _headersExpanded = !_headersExpanded;
     private void ToggleCookies() => _cookiesExpanded = !_cookiesExpanded;
+    private void ToggleAuthVerdict() => _authVerdictExpanded = !_authVerdictExpanded;
     private void ToggleAuth() => _authExpanded = !_authExpanded;
+
+    private static bool IsBearerToken(ParsedToken token) =>
+        token.Scheme?.Equals("Bearer", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static bool ShouldShowAuthVerdict(AuditEntry entry, IReadOnlyList<ParsedToken> parsedTokens) =>
+        parsedTokens.Any(IsBearerToken) || entry.StatusCode is 401 or 403;
+
+    private static string AuthVerdictClasses(AuthVerdictSeverity severity) => severity switch
+    {
+        AuthVerdictSeverity.Error => "border-red-800 bg-red-950/40 text-red-200",
+        AuthVerdictSeverity.Warning => "border-amber-800 bg-amber-950/30 text-amber-100",
+        _ => "border-gray-800 bg-gray-950 text-gray-200"
+    };
+
+    private static string AuthVerdictBadgeClasses(AuthVerdictSeverity severity) => severity switch
+    {
+        AuthVerdictSeverity.Error => "border-red-700 text-red-300",
+        AuthVerdictSeverity.Warning => "border-amber-700 text-amber-300",
+        _ => "border-emerald-700 text-emerald-300"
+    };
 }
