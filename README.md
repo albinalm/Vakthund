@@ -31,7 +31,7 @@ By default, captured traffic is kept in memory for the current run. Switch to di
 - [How Vakthund Works](docs/how-it-works.md)
 - [Configuration](docs/configuration.md)
 - [Using the UI](docs/using-the-ui.md)
-- [Development](docs/development.md), including local development suite setup
+- [Development](docs/development.md)
 
 ## Quick Start
 
