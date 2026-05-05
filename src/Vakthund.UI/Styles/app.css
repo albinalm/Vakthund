@@ -21,6 +21,10 @@
     --color-amber-600: #e26f03;
     --color-amber-700: #b85902;
 
+    --color-emerald-400: #5dbf74;
+    --color-violet-400: #b885f0;
+    --color-red-400: #f9777f;
+
     /* Typography */
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
@@ -108,3 +112,83 @@
     --rz-series-7: #2cc8c8;
     --rz-series-8: #b885f0;
 }
+
+.hljs {
+    color: var(--color-gray-100);
+    background: transparent;
+}
+
+.hljs-attr,
+.hljs-attribute {
+    color: var(--color-amber-400);
+}
+
+.hljs-string,
+.hljs-addition {
+    color: var(--color-emerald-400);
+}
+
+.hljs-number {
+    color: var(--color-violet-400);
+}
+
+.hljs-literal {
+    color: var(--color-red-400);
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+    color: var(--color-amber-500);
+}
+
+.hljs-built_in,
+.hljs-type {
+    color: var(--color-amber-300);
+}
+
+.hljs-name,
+.hljs-tag {
+    color: var(--color-amber-400);
+}
+
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_ {
+    color: var(--color-amber-400);
+}
+
+.hljs-comment,
+.hljs-quote {
+    color: var(--color-gray-500);
+    font-style: italic;
+}
+
+.hljs-punctuation,
+.hljs-operator {
+    color: var(--color-gray-400);
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-symbol {
+    color: var(--color-amber-300);
+}
+
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+    color: var(--color-amber-400);
+}
+
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+    color: var(--color-gray-400);
+}
+
+.hljs-deletion {
+    color: var(--color-red-400);
+}
+
+.hljs-emphasis { font-style: italic; }
+.hljs-strong   { font-weight: bold; }
