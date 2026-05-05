@@ -16,7 +16,9 @@ public class AuditEntry
     public Dictionary<string, string> Headers { get; set; } = [];
     public Dictionary<string, string> Cookies { get; set; } = [];
     public Dictionary<string, string> Queries { get; set; } = [];
+    public string? ContentType { get; set; }
     public string? Body { get; set; }
+    public string? ResponseContentType { get; set; }
     public string? ResponseBody { get; set; }
     public int? StatusCode { get; set; }
     public long? TargetDurationMs { get; set; }

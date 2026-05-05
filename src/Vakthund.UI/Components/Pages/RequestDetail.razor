@@ -56,19 +56,33 @@ else
 
         @if (!string.IsNullOrEmpty(_entry.Body))
         {
-            <Section Title="Request Body" Expanded="_bodyExpanded" OnToggle="ToggleBody">
-                <div class="p-3">
-                    <CodeBlock Content="@_entry.Body" />
-                </div>
+            <Section Title="Request Body" Tag="@HttpStyle.ContentTypeShortName(_entry.ContentType)" Expanded="_bodyExpanded" OnToggle="ToggleBody">
+                @if (IsFormEncoded(_entry.ContentType))
+                {
+                    <KeyValueTable Entries="@ParseFormEncoded(_entry.Body)" />
+                }
+                else
+                {
+                    <div class="p-3">
+                        <CodeBlock Content="@_entry.Body" ContentType="@_entry.ContentType" />
+                    </div>
+                }
             </Section>
         }
 
         @if (!string.IsNullOrEmpty(_entry.ResponseBody))
         {
-            <Section Title="Response Body" Expanded="_responseBodyExpanded" OnToggle="ToggleResponseBody">
-                <div class="p-3">
-                    <CodeBlock Content="@_entry.ResponseBody" />
-                </div>
+            <Section Title="Response Body" Tag="@HttpStyle.ContentTypeShortName(_entry.ResponseContentType)" Expanded="_responseBodyExpanded" OnToggle="ToggleResponseBody">
+                @if (IsFormEncoded(_entry.ResponseContentType))
+                {
+                    <KeyValueTable Entries="@ParseFormEncoded(_entry.ResponseBody)" />
+                }
+                else
+                {
+                    <div class="p-3">
+                        <CodeBlock Content="@_entry.ResponseBody" ContentType="@_entry.ResponseContentType" />
+                    </div>
+                }
             </Section>
         }
 

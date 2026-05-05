@@ -38,6 +38,22 @@ public partial class RequestDetail
             : [];
     }
 
+    private bool IsFormEncoded(string? contentType) =>
+        contentType?.Split(';')[0].Trim().Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static Dictionary<string, string> ParseFormEncoded(string body)
+    {
+        var result = new Dictionary<string, string>();
+        foreach (string pair in body.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int idx = pair.IndexOf('=');
+            if (idx < 0) continue;
+            result[Uri.UnescapeDataString(pair[..idx].Replace('+', ' '))] =
+                Uri.UnescapeDataString(pair[(idx + 1)..].Replace('+', ' '));
+        }
+        return result;
+    }
+
     private void NavigateBack() => Nav.NavigateTo("/requests");
 
     private void ToggleBody() => _bodyExpanded = !_bodyExpanded;

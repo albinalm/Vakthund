@@ -5,6 +5,7 @@
 @code {
     [Parameter, EditorRequired] public string Content { get; set; } = "";
     [Parameter] public string? Language { get; set; }
+    [Parameter] public string? ContentType { get; set; }
 
     private ElementReference _codeRef;
     private string _formatted = "";
@@ -16,11 +17,25 @@
         {
             _formatted = Content;
             _language = Language;
+            return;
         }
-        else
+
+        string? hinted = ContentType is not null ? ContentTypeToLanguage(ContentType) : null;
+        (_formatted, _language) = FormatAndDetect(Content, hinted);
+    }
+
+    private static string? ContentTypeToLanguage(string contentType)
+    {
+        string baseType = contentType.Split(';')[0].Trim().ToLowerInvariant();
+        return baseType switch
         {
-            (_formatted, _language) = FormatAndDetect(Content);
-        }
+            "application/json" or "text/json" => "json",
+            "application/xml" or "text/xml" or "application/xhtml+xml" => "xml",
+            "text/html" => "html",
+            "text/css" => "css",
+            "application/javascript" or "text/javascript" => "javascript",
+            _ => null
+        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -38,11 +53,11 @@
         }
     }
 
-    private static (string Formatted, string Language) FormatAndDetect(string raw)
+    private static (string Formatted, string Language) FormatAndDetect(string raw, string? hintedLanguage)
     {
         ReadOnlySpan<char> trimmed = raw.AsSpan().TrimStart();
 
-        if (trimmed.StartsWith("{") || trimmed.StartsWith("["))
+        if (hintedLanguage is "json" || (hintedLanguage is null && (trimmed.StartsWith("{") || trimmed.StartsWith("["))))
         {
             try
             {
@@ -52,7 +67,7 @@
             catch { }
         }
 
-        if (trimmed.StartsWith("<"))
+        if (hintedLanguage is "xml" || (hintedLanguage is null && trimmed.StartsWith("<")))
         {
             try
             {
@@ -61,6 +76,6 @@
             catch { }
         }
 
-        return (raw, "plaintext");
+        return (raw, hintedLanguage ?? "plaintext");
     }
 }

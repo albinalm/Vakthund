@@ -34,9 +34,15 @@
                         <span class="font-mono text-xs text-gray-400">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="Method" Title="Method" Width="100px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Method" Title="Method" Width="110px">
                     <Template Context="entry">
-                        <span class="rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(entry.Method)">@entry.Method</span>
+                        <div class="flex flex-col gap-1">
+                            <span class="w-fit rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(entry.Method)">@entry.Method</span>
+                            @if (HttpStyle.ContentTypeShortName(entry.ContentType) is { } ct)
+                            {
+                                <span class="font-mono text-xs text-gray-500">@ct</span>
+                            }
+                        </div>
                     </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="StatusCode" Title="Status" Width="95px">
