@@ -61,7 +61,7 @@ jobs:
           K6_VUS: 2
           K6_DURATION: 10s
         run: |
-          mkdir -p results
+          mkdir -p results && chmod a+w results
           docker compose --profile load up --build --abort-on-container-exit --exit-code-from k6
 
       - name: Upload summary
