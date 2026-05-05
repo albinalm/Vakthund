@@ -4,15 +4,12 @@ The easiest way to run Vakthund is Docker Compose. Run the proxy and the UI toge
 
 ## Recommended Compose Setup
 
-Create a `docker-compose.yml` in the repository root or next to your own development stack:
+Create a `docker-compose.yml` next to your own development stack:
 
 ```yaml
 services:
   proxy:
-    build:
-      context: ./src
-      dockerfile: Vakthund.Proxy/Dockerfile
-    pull_policy: never
+    image: ghcr.io/albinalm/vakthund-proxy:latest
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -26,10 +23,7 @@ services:
       start_period: 10s
 
   ui:
-    build:
-      context: ./src
-      dockerfile: Vakthund.UI/Dockerfile
-    pull_policy: never
+    image: ghcr.io/albinalm/vakthund-ui:latest
     user: root
     ports:
       - "8082:8080"
@@ -48,7 +42,16 @@ volumes:
 Start it:
 
 ```bash
-docker compose up --build
+docker compose up
+```
+
+If you are working on Vakthund itself and want to run from source, replace the `image:` lines with `build:` blocks pointing at the Dockerfiles:
+
+```yaml
+  proxy:
+    build:
+      context: ./src
+      dockerfile: Vakthund.Proxy/Dockerfile
 ```
 
 Open the UI:

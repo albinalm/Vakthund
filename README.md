@@ -45,9 +45,7 @@ For a single upstream service, set `TARGET` on the proxy:
 ```yaml
 services:
   proxy:
-    build:
-      context: ./src
-      dockerfile: Vakthund.Proxy/Dockerfile
+    image: ghcr.io/albinalm/vakthund-proxy:latest
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -55,9 +53,7 @@ services:
       TARGET: "http://host.docker.internal:5000"
 
   ui:
-    build:
-      context: ./src
-      dockerfile: Vakthund.UI/Dockerfile
+    image: ghcr.io/albinalm/vakthund-ui:latest
     ports:
       - "8082:8080"
     environment:
