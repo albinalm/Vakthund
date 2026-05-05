@@ -84,6 +84,9 @@
     --rz-warning: #fac152;
     --rz-danger: #f9777f;
     --rz-info: #2cc8c8;
+    --rz-checkbox-checked-hover-background-color: #e26f03;
+    --rz-checkbox-checked-hover-border: 1px solid #e26f03;
+    --rz-dropdown-item-selected-background-color: #3a2a14;
 
     --rz-grid-background-color: #272727;
     --rz-grid-border: 1px solid #3a3a3a;
@@ -175,6 +178,9 @@ html:not(.dark) {
     --rz-warning: #8f6500;
     --rz-danger: #b4232d;
     --rz-info: #1f6f8b;
+    --rz-checkbox-checked-hover-background-color: #b95708;
+    --rz-checkbox-checked-hover-border: 1px solid #b95708;
+    --rz-dropdown-item-selected-background-color: #fff3e2;
 
     --rz-grid-background-color: #ffffff;
     --rz-grid-border: 1px solid #d6dde7;
