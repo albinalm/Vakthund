@@ -8,25 +8,40 @@
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="font-display text-2xl font-semibold text-gray-100">Dashboard</h1>
-            <p class="mt-1 text-sm text-gray-500">Live traffic captured from the proxy audit stream.</p>
+            <p class="mt-1 text-sm text-gray-500">Traffic captured from the proxy audit stream.</p>
         </div>
         <a href="/requests" class="inline-flex items-center rounded border border-gray-700 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-500">
             View requests
         </a>
     </header>
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-            <div class="text-sm font-medium text-gray-500">Total requests</div>
-            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.TotalRequests</div>
+            <div class="text-sm font-medium text-gray-500">Stored requests</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">
+                @_metrics.TotalRequests.ToString("N0") / @MaxAuditEntries.ToString("N0")
+            </div>
         </div>
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
             <div class="text-sm font-medium text-gray-500">Requests/min</div>
-            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.RequestsPerMin</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">
+                @_metrics.RequestsPerMin.ToString("N0")
+            </div>
+        </div>
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <div class="text-sm font-medium text-gray-500">Audit loss</div>
+            <div class="mt-2 font-display text-3xl font-semibold @(_metrics.LostAuditEntries > 0 ? "text-red-400" : "text-gray-100")">
+                @_metrics.LostAuditEntries.ToString("N0")
+            </div>
+            <div class="mt-1 text-xs text-gray-600">Last hour</div>
         </div>
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
             <div class="text-sm font-medium text-gray-500">Avg response</div>
             <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.AvgResponseTime.ToString("F0") ms</div>
+        </div>
+        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
+            <div class="text-sm font-medium text-gray-500">Avg target</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-gray-100">@_metrics.AvgTargetResponseTime.ToString("F0") ms</div>
         </div>
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
             <div class="text-sm font-medium text-gray-500">Error rate</div>
@@ -40,7 +55,7 @@
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4 xl:col-span-2">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-300">Requests over time</h2>
-                <span class="text-xs text-gray-500">Last 10 minutes</span>
+                <span class="text-xs text-gray-500">Last 10 min</span>
             </div>
             @if (_metrics.RequestsOverTime.Count > 0)
             {
@@ -68,8 +83,8 @@
                     <RadzenDonutSeries Data="@_metrics.StatusDistribution" CategoryProperty="Label" ValueProperty="Count">
                         <TitleTemplate>
                             <div style="text-align:center">
-                                <div style="font-size:1.25rem;font-weight:700;color:#f0f0f0">@_metrics.TotalRequests</div>
-                                <div style="font-size:0.75rem;color:#6b6b6b">total</div>
+                                <div style="font-size:1.25rem;font-weight:700;color:#f0f0f0">@_metrics.WindowRequests.ToString("N0")</div>
+                                <div style="font-size:0.75rem;color:#6b6b6b">last hour</div>
                             </div>
                         </TitleTemplate>
                     </RadzenDonutSeries>
@@ -84,7 +99,10 @@
 
     <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4 xl:col-span-2">
-            <h2 class="mb-3 text-sm font-semibold text-gray-300">Response time</h2>
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-gray-300">Response time</h2>
+                <span class="text-xs text-gray-500">Last hour</span>
+            </div>
             @if (_metrics.ResponseTimeOverTime.Count > 0)
             {
                 <RadzenChart Style="height: 200px">
