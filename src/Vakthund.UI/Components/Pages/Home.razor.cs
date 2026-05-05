@@ -1,104 +1,76 @@
 using Microsoft.AspNetCore.Components;
-using Vakthund.Shared.Models;
+using Microsoft.Extensions.Options;
 using Vakthund.UI.Models;
+using Vakthund.UI.Options;
 using Vakthund.UI.Services;
 
 namespace Vakthund.UI.Components.Pages;
 
 public partial class Home : IDisposable
 {
-    [Inject] private AuditHubConnection AuditHubConnection { get; set; } = null!;
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(1);
+
     [Inject] private AuditStore AuditStore { get; set; } = null!;
+    [Inject] private MetricsStore MetricsStore { get; set; } = null!;
     [Inject] private MetricsService MetricsService { get; set; } = null!;
+    [Inject] private IOptions<VakthundOptions> Options { get; set; } = null!;
 
     private DashboardMetrics _metrics = null!;
+    private int MaxAuditEntries => Options.Value.MaxAuditEntries;
+    private readonly CancellationTokenSource _refreshCts = new();
     private bool _disposed;
-    private bool _refreshScheduled;
 
     protected override void OnInitialized()
     {
-        _metrics = MetricsService.Compute(AuditStore.All);
-        AuditHubConnection.Requests += OnRequests;
+        _metrics = ComputeMetrics();
+        _ = RefreshLoopAsync(_refreshCts.Token);
     }
 
-    private void OnRequests(IReadOnlyList<AuditEntry> entries)
+    private async Task RefreshLoopAsync(CancellationToken cancellationToken)
     {
-        if (_disposed || entries.Count == 0)
+        while (!cancellationToken.IsCancellationRequested)
         {
-            return;
-        }
-
-        _ = ApplyRequestsAsync();
-    }
-
-    private async Task ApplyRequestsAsync()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        try
-        {
-            await InvokeAsync(() =>
+            try
             {
+                await Task.Delay(RefreshInterval, cancellationToken);
+
                 if (_disposed)
                 {
                     return;
                 }
 
-                ScheduleRefresh();
-            });
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or OperationCanceledException)
-        {
-            // A queued batch can race with component disposal under heavy traffic.
-        }
-    }
+                DashboardMetrics metrics = ComputeMetrics();
 
-    private void ScheduleRefresh()
-    {
-        if (_refreshScheduled)
-        {
-            return;
-        }
+                await InvokeAsync(() =>
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
 
-        _refreshScheduled = true;
-        _ = RefreshSoonAsync();
-    }
-
-    private async Task RefreshSoonAsync()
-    {
-        await Task.Delay(TimeSpan.FromMilliseconds(250));
-
-        if (_disposed)
-        {
-            return;
-        }
-
-        try
-        {
-            await InvokeAsync(() =>
+                    _metrics = metrics;
+                    StateHasChanged();
+                });
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or OperationCanceledException)
             {
-                if (_disposed)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
 
-                _refreshScheduled = false;
-                _metrics = MetricsService.Compute(AuditStore.All);
-                StateHasChanged();
-            });
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or OperationCanceledException)
-        {
-            // Ignore render work that raced with disposal.
+                // Ignore render work that raced with disposal.
+            }
         }
     }
+
+    private DashboardMetrics ComputeMetrics() =>
+        MetricsService.Compute(MetricsStore.Snapshot(), AuditStore.Count, AuditStore.Latest());
 
     public void Dispose()
     {
         _disposed = true;
-        AuditHubConnection.Requests -= OnRequests;
+        _refreshCts.Cancel();
+        _refreshCts.Dispose();
     }
 }
