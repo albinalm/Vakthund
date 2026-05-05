@@ -45,3 +45,34 @@ jobs:
 
       - name: Test solution
         run: dotnet test src/Vakthund.sln --configuration Release --no-build --verbosity normal
+
+  smoke-test:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run smoke test
+        working-directory: src/Vakthund.Tests/k6
+        env:
+          K6_VUS: 2
+          K6_DURATION: 10s
+        run: |
+          mkdir -p results
+          docker compose --profile load up --build --abort-on-container-exit --exit-code-from k6
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-smoke-summary
+          path: src/Vakthund.Tests/k6/results/summary.json
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        working-directory: src/Vakthund.Tests/k6
+        run: docker compose --profile load down --volumes

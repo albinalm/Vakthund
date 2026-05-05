@@ -63,6 +63,7 @@ services:
       K6_DURATION: ${K6_DURATION:-30s}
     volumes:
       - ./load.js:/scripts/load.js:ro
+      - ./results:/results
     depends_on:
       proxy:
         condition: service_healthy
