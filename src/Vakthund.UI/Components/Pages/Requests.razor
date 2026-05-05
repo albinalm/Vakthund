@@ -28,51 +28,45 @@
         </div>
     </header>
 
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs text-gray-600">View</span>
-        <select value="@_activeProfileName" @onchange="OnProfileChangedAsync"
-                class="rounded border border-gray-700 bg-gray-950 px-2 py-1.5 text-sm text-gray-300 outline-none transition-colors focus:border-amber-500">
-            <option value="@DefaultProfileName">@DefaultProfileName</option>
-            @foreach (string name in _profiles.Keys.Where(k => k != DefaultProfileName).Order())
-            {
-                <option value="@name">@name</option>
-            }
-            <option value="__create__">＋ Create view</option>
-        </select>
-        <button @onclick="SaveCurrentLayoutAsync"
-                title="Save current layout to this view"
-                class="text-gray-500 transition-colors hover:text-amber-400">
-            <span class="material-symbols-outlined text-xl">save</span>
-        </button>
-        @if (_activeProfileName != DefaultProfileName)
-        {
-            <button @onclick="TryDeleteProfileAsync"
-                    title="Delete this view"
-                    class="text-gray-500 transition-colors hover:text-red-400">
-                <span class="material-symbols-outlined text-xl">delete</span>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+            <button @onclick="TryDeleteSelectedAsync"
+                    disabled="@(SelectedCount == 0)"
+                    class="inline-flex items-center gap-1.5 rounded border border-red-800 px-2.5 py-1.5 text-xs font-medium text-red-400 transition-colors hover:border-red-600 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40">
+                <span class="material-symbols-outlined text-base">delete</span>
+                Delete selected
             </button>
-        }
-        <span class="mx-2 h-5 border-l border-gray-800"></span>
-        <button @onclick="SelectAllVisible"
-                disabled="@(VisibleEntries.Count == 0)"
-                class="rounded border border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-400 disabled:cursor-not-allowed disabled:opacity-40">
-            Select all
-        </button>
-        <button @onclick="ClearSelection"
-                disabled="@(SelectedCount == 0)"
-                class="rounded border border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-gray-500 hover:text-gray-100 disabled:cursor-not-allowed disabled:opacity-40">
-            Clear
-        </button>
-        <button @onclick="TryDeleteSelectedAsync"
-                disabled="@(SelectedCount == 0)"
-                class="inline-flex items-center gap-1.5 rounded border border-red-800 px-2.5 py-1.5 text-xs font-medium text-red-400 transition-colors hover:border-red-600 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40">
-            <span class="material-symbols-outlined text-base">delete</span>
-            Delete selected
-        </button>
-        @if (SelectedCount > 0)
-        {
-            <span class="text-xs text-gray-500">@SelectedCount.ToString("N0") selected</span>
-        }
+            @if (SelectedCount > 0)
+            {
+                <span class="text-xs text-gray-500">@SelectedCount.ToString("N0") selected</span>
+            }
+        </div>
+
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <span class="text-xs text-gray-600">View</span>
+            <select value="@_activeProfileName" @onchange="OnProfileChangedAsync"
+                    class="rounded border border-gray-700 bg-gray-950 px-2 py-1.5 text-sm text-gray-300 outline-none transition-colors focus:border-amber-500">
+                <option value="@DefaultProfileName">@DefaultProfileName</option>
+                @foreach (string name in _profiles.Keys.Where(k => k != DefaultProfileName).Order())
+                {
+                    <option value="@name">@name</option>
+                }
+                <option value="__create__">＋ Create view</option>
+            </select>
+            <button @onclick="SaveCurrentLayoutAsync"
+                    title="Save current layout to this view"
+                    class="text-gray-500 transition-colors hover:text-amber-400">
+                <span class="material-symbols-outlined text-xl">save</span>
+            </button>
+            @if (_activeProfileName != DefaultProfileName)
+            {
+                <button @onclick="TryDeleteProfileAsync"
+                        title="Delete this view"
+                        class="text-gray-500 transition-colors hover:text-red-400">
+                    <span class="material-symbols-outlined text-xl">delete</span>
+                </button>
+            }
+        </div>
     </div>
 
     <div class="overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
