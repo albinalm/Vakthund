@@ -75,4 +75,4 @@ For multiple upstreams or path-based routing, mount a routes file instead. See [
 
 ## License
 
-Vakthund is licensed under the terms in [LICENSE](LICENSE).
+Vakthund is completely FOSS and licensed under the terms in [LICENSE](LICENSE).
