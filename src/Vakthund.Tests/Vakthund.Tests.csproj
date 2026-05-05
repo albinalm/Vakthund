@@ -31,4 +31,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="k6\**" />
+    <Content Remove="k6\**" />
+    <EmbeddedResource Remove="k6\**" />
+    <None Remove="k6\**" />
+  </ItemGroup>
+
 </Project>
