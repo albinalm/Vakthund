@@ -5,64 +5,100 @@ namespace Vakthund.UI.Services;
 
 public class MetricsService
 {
-    private static readonly TimeSpan Window = TimeSpan.FromMinutes(10);
+    private const int ChartWindowMinutes = 10;
+    private static readonly TimeSpan RecentWindow = TimeSpan.FromMinutes(1);
 
-    public DashboardMetrics Compute(IReadOnlyCollection<AuditEntry> all)
+    public DashboardMetrics Compute(
+        MetricsSnapshot snapshot,
+        int retainedRequestCount,
+        AuditEntry? latestRequest)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-        DateTimeOffset cutoff = now - Window;
+        DateTimeOffset anchor = snapshot.LatestTimestamp ?? DateTimeOffset.UtcNow;
+        DateTime latestMinute = MetricsStore.MinuteBucket(anchor);
+        DateTime minuteCutoff = latestMinute.AddMinutes(-ChartWindowMinutes + 1);
+        DateTime secondCutoff = MetricsStore.SecondBucket(anchor - RecentWindow);
+        DateTime latestSecond = MetricsStore.SecondBucket(anchor);
 
-        var requestBuckets = new Dictionary<DateTime, int>();
-        var rtBuckets = new Dictionary<DateTime, (double Sum, int Count)>();
+        MetricsBucketSnapshot[] buckets = snapshot.MinuteBuckets
+            .Where(bucket => bucket.Start >= minuteCutoff && bucket.Start <= latestMinute)
+            .OrderBy(bucket => bucket.Start)
+            .ToArray();
 
-        foreach (AuditEntry entry in all.Where(e => e.Timestamp >= cutoff))
+        int windowRequests = buckets.Sum(bucket => bucket.Count);
+        int lostAuditEntries = buckets.Sum(bucket => bucket.LostCount);
+        long windowDurationMs = buckets.Sum(bucket => bucket.DurationSumMs);
+        long windowTargetDurationMs = buckets.Sum(bucket => bucket.TargetDurationSumMs);
+        int windowTargetCount = buckets.Sum(bucket => bucket.TargetCount);
+        int errors = buckets.Sum(bucket => bucket.ErrorCount);
+        KeyValuePair<DateTime, int>[] recentSecondBuckets = snapshot.SecondBuckets
+            .Where(bucket => bucket.Key > secondCutoff && bucket.Key <= latestSecond)
+            .OrderBy(bucket => bucket.Key)
+            .ToArray();
+
+        int requestsPerMin = 0;
+        if (recentSecondBuckets.Length > 0)
         {
-            DateTime bucket = BucketFor(entry.Timestamp);
-            requestBuckets[bucket] = requestBuckets.GetValueOrDefault(bucket) + 1;
-            (double sum, int count) = rtBuckets.GetValueOrDefault(bucket);
-            rtBuckets[bucket] = (sum + entry.DurationMs, count + 1);
+            int recentTotal = recentSecondBuckets.Sum(bucket => bucket.Value);
+            double elapsedSeconds = (recentSecondBuckets.Last().Key - recentSecondBuckets.First().Key).TotalSeconds + 1;
+            requestsPerMin = (int)Math.Round(recentTotal / elapsedSeconds * 60.0);
         }
 
-        List<TimePoint> requestsOverTime = requestBuckets
+        Dictionary<int, int> statusCounts = [];
+        foreach (MetricsBucketSnapshot bucket in buckets)
+        {
+            foreach ((int statusCode, int count) in bucket.StatusCounts)
+            {
+                statusCounts[statusCode] = statusCounts.GetValueOrDefault(statusCode) + count;
+            }
+        }
+
+        Dictionary<DateTime, MetricsBucketSnapshot> bucketMap = buckets.ToDictionary(bucket => bucket.Start);
+        List<TimePoint> requestsOverTime = windowRequests == 0
+            ? []
+            : Enumerable.Range(0, ChartWindowMinutes)
+                .Select(offset => minuteCutoff.AddMinutes(offset))
+                .Select(minute => new TimePoint
+                {
+                    Time = minute.ToString("HH:mm"),
+                    Value = bucketMap.GetValueOrDefault(minute)?.Count ?? 0
+                })
+                .ToList();
+
+        List<TimePoint> responseTimeOverTime = buckets
+            .Where(bucket => bucket.Count > 0)
+            .Select(bucket => new TimePoint { Time = bucket.Start.ToString("HH:mm"), Value = bucket.DurationSumMs / (double)bucket.Count })
+            .ToList();
+
+        List<StatusGroup> statusDistribution = statusCounts
             .OrderBy(k => k.Key)
-            .Select(k => new TimePoint { Time = k.Key.ToString("HH:mm:ss"), Value = k.Value })
+            .Select(k => new StatusGroup { Label = k.Key.ToString(), Count = k.Value })
             .ToList();
-
-        List<TimePoint> responseTimeOverTime = rtBuckets
-            .OrderBy(k => k.Key)
-            .Select(k => new TimePoint { Time = k.Key.ToString("HH:mm:ss"), Value = k.Value.Sum / k.Value.Count })
-            .ToList();
-
-        List<StatusGroup> statusDistribution = all
-            .Where(e => e.StatusCode.HasValue)
-            .GroupBy(e => e.StatusCode!.Value)
-            .Select(g => new StatusGroup { Label = g.Key.ToString(), Count = g.Count() })
-            .OrderBy(g => g.Label)
-            .ToList();
-
-        int totalRequests = all.Count;
-        int requestsPerMin = all.Count(e => e.Timestamp >= now.AddMinutes(-1));
-        double avgResponseTime = all.Count != 0 ? all.Average(e => e.DurationMs) : 0;
-        double errorRate = totalRequests > 0
-            ? all.Count(e => e.StatusCode >= 400) * 100.0 / totalRequests
-            : 0;
 
         return new DashboardMetrics
         {
             RequestsOverTime = requestsOverTime,
             ResponseTimeOverTime = responseTimeOverTime,
             StatusDistribution = statusDistribution,
-            TotalRequests = totalRequests,
+            TotalRequests = retainedRequestCount,
+            WindowRequests = windowRequests,
+            LostAuditEntries = lostAuditEntries,
             RequestsPerMin = requestsPerMin,
-            AvgResponseTime = avgResponseTime,
-            ErrorRate = errorRate,
-            LatestRequest = all.FirstOrDefault()
+            AvgResponseTime = windowRequests != 0 ? windowDurationMs / (double)windowRequests : 0,
+            AvgTargetResponseTime = windowTargetCount != 0 ? windowTargetDurationMs / (double)windowTargetCount : 0,
+            ErrorRate = windowRequests != 0 ? errors * 100.0 / windowRequests : 0,
+            LatestRequest = latestRequest
         };
     }
 
-    private static DateTime BucketFor(DateTimeOffset dt)
+    public DashboardMetrics Compute(IReadOnlyCollection<AuditEntry> all)
     {
-        var utc = dt.UtcDateTime;
-        return new DateTime(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, (utc.Second / 30) * 30, DateTimeKind.Utc);
+        var store = new MetricsStore();
+        store.AddRange(all);
+
+        AuditEntry? latest = all
+            .OrderByDescending(entry => entry.Timestamp)
+            .FirstOrDefault();
+
+        return Compute(store.Snapshot(), all.Count, latest);
     }
 }
