@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Jose;
-using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
@@ -10,7 +9,7 @@ using Base64UrlHelper = Vakthund.UI.Helpers.Base64Url;
 
 namespace Vakthund.UI.Services;
 
-public class JwtTokenParser(IOptions<UiOptions> options)
+public class JwtTokenParser
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

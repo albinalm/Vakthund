@@ -1,10 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using Jose;
-using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
 using Vakthund.UI.Models;
-using Vakthund.UI.Options;
 using Vakthund.UI.Services;
 
 namespace Vakthund.Tests.Services;
@@ -14,7 +12,7 @@ public class JwtTokenParserTests
     [Fact]
     public void Parse_DecodesBearerJwt_FromAuthorizationHeader()
     {
-        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
+        var parser = new JwtTokenParser();
         string token = BuildJwt(new
         {
             alg = "none",
@@ -62,7 +60,7 @@ public class JwtTokenParserTests
     [Fact]
     public void Parse_DecodesBasicCredentials_FromAuthorizationHeader()
     {
-        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
+        var parser = new JwtTokenParser();
         string credentials = Convert.ToBase64String("alice:secret"u8.ToArray());
 
         ParsedToken parsed = Assert.Single(parser.Parse(new Dictionary<string, string>
@@ -78,7 +76,7 @@ public class JwtTokenParserTests
     [Fact]
     public void Parse_IgnoresHeadersWithoutRecognizableTokens()
     {
-        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
+        var parser = new JwtTokenParser();
 
         IReadOnlyList<ParsedToken> parsed = parser.Parse(new Dictionary<string, string>
         {
@@ -97,7 +95,7 @@ public class JwtTokenParserTests
             sub = "route-user",
             aud = "orders-api"
         });
-        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
+        var parser = new JwtTokenParser();
 
         ParsedToken parsed = Assert.Single(parser.Parse(
             new Dictionary<string, string>

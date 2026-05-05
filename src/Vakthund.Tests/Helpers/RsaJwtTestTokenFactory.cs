@@ -1,9 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using Vakthund.UI.Models;
-using Vakthund.UI.Options;
 using Vakthund.UI.Services;
 
 namespace Vakthund.Tests.Helpers;
@@ -40,7 +38,7 @@ public static class RsaJwtTestTokenFactory
 
     public static ParsedToken ParseToken(string token)
     {
-        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
+        var parser = new JwtTokenParser();
         return Assert.Single(parser.Parse(new Dictionary<string, string>
         {
             ["Authorization"] = $"Bearer {token}"
