@@ -9,9 +9,9 @@
   <a href="https://github.com/albinalm/Vakthund/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License"></a>
 </p>
 
-Vakthund is a local HTTP inspection proxy for development. Put it between a client and the service you are building, send traffic through it, and watch the requests appear in a Blazor UI as they happen.
+Vakthund is an HTTP inspection proxy. Drop it in front of any service, send traffic through it, and see exactly what is going on in a live Blazor UI.
 
-It is useful when you need to see what a browser, mobile app, integration, webhook sender, or test client is really sending. Vakthund captures headers, query parameters, cookies, request bodies, response bodies, status codes, timings, and authorization metadata without requiring changes to the target application.
+It captures headers, bodies, tokens, timing, and auth failures without touching the target application. Useful for local development, but also runs well on servers and staging environments where you want a persistent inspection layer that survives restarts.
 
 ## What It Does
 
@@ -23,7 +23,7 @@ It is useful when you need to see what a browser, mobile app, integration, webho
 - Can decrypt JWE tokens when a key is configured.
 - Shows dashboard metrics, request history, route configuration, and per-request details.
 
-Vakthund keeps captured traffic in memory for the current run. It is designed for local development and controlled environments, not for long-term storage or production traffic retention.
+By default, captured traffic is kept in memory for the current run. Switch to disk storage to persist requests across restarts, set a retention window, and keep the dashboard graphs loaded between sessions.
 
 ## Documentation
 
