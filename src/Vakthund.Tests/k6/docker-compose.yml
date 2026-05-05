@@ -1,0 +1,69 @@
+services:
+  dummy-api:
+    build:
+      context: ./dummy-api
+    ports:
+      - "18080:8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+
+  proxy:
+    build:
+      context: ../..
+      dockerfile: Vakthund.Proxy/Dockerfile
+    ports:
+      - "18000:8080"
+      - "18001:8081"
+    environment:
+      ROUTES_FILE: /etc/vakthund/routes.yaml
+      MAX_BODY_BYTES: 262144
+      MAX_RESPONSE_BODY_BYTES: 262144
+      MAX_QUEUED_ENTRIES: 200000
+    volumes:
+      - ./routes.yaml:/etc/vakthund/routes.yaml:ro
+    depends_on:
+      - dummy-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  ui:
+    build:
+      context: ../..
+      dockerfile: Vakthund.UI/Dockerfile
+    user: root
+    ports:
+      - "18002:8080"
+    environment:
+      HUB: http://proxy:8081/connect/audit
+      MAX_AUDIT_ENTRIES: 200000
+    volumes:
+      - ui-keys:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      proxy:
+        condition: service_healthy
+
+  k6:
+    image: grafana/k6:latest
+    profiles:
+      - load
+    environment:
+      BASE_URL: http://proxy:8080
+      MANAGEMENT_URL: http://proxy:8081
+      UI_URL: http://ui:8080
+      K6_VUS: ${K6_VUS:-200}
+      K6_DURATION: ${K6_DURATION:-2m}
+    volumes:
+      - ./load.js:/scripts/load.js:ro
+    depends_on:
+      proxy:
+        condition: service_healthy
+      ui:
+        condition: service_started
+    command: run /scripts/load.js
+
+volumes:
+  ui-keys:

@@ -1,0 +1,3 @@
+routes:
+  - path: /**
+    target: http://dummy-api:8080
