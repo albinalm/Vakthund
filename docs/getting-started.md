@@ -127,6 +127,22 @@ The `path` value is matched by YARP. Vakthund accepts common catch-all paths suc
 
 When a routes file is present, it takes priority over `TARGET`.
 
+Routes can also include auth expectations. These do not change proxy behavior; they give the UI enough context to explain why a request failed authentication or authorization:
+
+```yaml
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      issuer: https://login.example.com
+      audience: orders-api
+      scopes:
+        - orders.read
+      jwksUrl: https://login.example.com/.well-known/jwks.json
+```
+
+Open a captured request and check the auth verdict to see whether the bearer token matches the configured route expectations.
+
 ## Mounting a Routes File
 
 Create `routes.yaml` beside your Compose file:
@@ -175,6 +191,6 @@ After Compose is running:
 1. Open `http://localhost:8082`.
 2. Send a request to `http://localhost:8080`.
 3. Check the dashboard or the requests page.
-4. Open a request to inspect headers, tokens, query parameters, cookies, bodies, status code, and timing.
+4. Open a request to inspect the auth verdict, headers, tokens, query parameters, cookies, bodies, status code, and timing.
 
 If nothing appears, confirm that the UI `HUB` value points to the proxy management hub and that your client is sending traffic through the proxy port, not directly to the target app.

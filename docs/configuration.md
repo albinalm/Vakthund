@@ -52,10 +52,54 @@ Each route has:
 
 - `path`: the incoming path pattern to match.
 - `target`: the upstream base URL.
+- `auth`: optional expectations used by the UI to explain auth failures.
 
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally.
 
 Use specific paths for individual services, and add a broad `/**` fallback only when you want unmatched traffic to go somewhere.
+
+## Route Auth Expectations
+
+Routes can declare the auth contract the target service expects:
+
+```yaml
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      issuer: https://login.example.com
+      audience: orders-api
+      scopes:
+        - orders.read
+      roles:
+        - admin
+```
+
+The UI compares decoded bearer tokens against the matched route and reports issuer, audience, scope, role, expiry, and not-before mismatches in the auth verdict.
+
+For signature validation, configure either `jwksUrl` directly or `openIdConfigurationUrl` for OIDC discovery:
+
+```yaml
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      issuer: https://login.example.com
+      audience: orders-api
+      openIdConfigurationUrl: https://login.example.com/.well-known/openid-configuration
+```
+
+If `issuer` is an absolute URL and no key endpoint is set, the UI tries `<issuer>/.well-known/openid-configuration`.
+If no key endpoint or route issuer is configured, the UI may also try OIDC discovery from the token's `iss` claim. Token-derived metadata is used only for signature validation enrichment; configured route expectations remain the source of truth for issuer, audience, scope, and role checks.
+
+Signing keys are resolved in this order:
+
+1. `auth.jwksUrl`.
+2. `auth.openIdConfigurationUrl`.
+3. OIDC metadata derived from `auth.issuer`.
+4. OIDC metadata derived from the token `iss` claim.
+
+The auth verdict labels the signing key source so inferred metadata is visible in the UI.
 
 ## Single Target Versus Routes File
 

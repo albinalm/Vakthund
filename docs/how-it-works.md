@@ -54,14 +54,30 @@ The UI keeps captured requests in memory for the current UI process. It provides
 
 - A dashboard with request count, rate, response timing, error rate, and status code distribution.
 - A searchable requests table.
-- A request detail page with body, headers, cookies, query parameters, tokens, response, and timing.
-- A configuration page showing active proxy routes and capture limits.
+- A request detail page with body, headers, cookies, query parameters, auth verdicts, tokens, response, and timing.
+- A configuration page showing active proxy routes, route auth expectations, and capture limits.
 
 ## Token Handling
 
 Vakthund tries to parse authentication data from captured headers.
 
 For bearer JWTs, it decodes and formats the header and payload, and marks the token as expired when the `exp` claim is in the past.
+
+For auth verdicts, the UI extracts common JWT header and payload fields:
+
+- `alg`, `kid`, and `typ` from the token header.
+- `iss`, `aud`, `sub`, `scope`, `scp`, `roles`, `client_id`, `azp`, `exp`, `nbf`, and `iat` from the payload.
+
+When the matched route has auth expectations, Vakthund compares those claims against the configured issuer, audience, scopes, and roles. Configured route expectations are treated as truth.
+
+For JWT signatures, Vakthund uses signing keys in this order:
+
+1. The route `auth.jwksUrl`.
+2. The route `auth.openIdConfigurationUrl`.
+3. OIDC metadata derived from the configured route issuer.
+4. OIDC metadata derived from the token issuer.
+
+Token issuer metadata is used only as signature-validation enrichment. It is not used to infer required issuer, audience, scopes, or roles.
 
 For JWE tokens, it can show the token header without a key. If a JWE key is configured, it attempts to decrypt the payload.
 

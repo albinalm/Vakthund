@@ -19,6 +19,7 @@ It is useful when you need to see what a browser, mobile app, integration, webho
 - Captures live request and response details.
 - Streams captured requests from the proxy to the UI over SignalR.
 - Decodes bearer JWTs and basic auth headers in the request detail view.
+- Explains common auth failures with route-level issuer, audience, scope, role, and signature checks.
 - Can decrypt JWE tokens when a key is configured.
 - Shows dashboard metrics, request history, route configuration, and per-request details.
 
