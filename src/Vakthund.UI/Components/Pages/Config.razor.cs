@@ -14,8 +14,9 @@ public partial class Config
     [Inject] private IOptions<VakthundOptions> UiOptions { get; set; } = null!;
 
     private ProxyConfig? _config;
+    private string? _errorMessage;
+    private string? _errorDetail;
     private bool _loading = true;
-    private bool _error;
 
     private bool _routesExpanded = true;
     private bool _captureExpanded = true;
@@ -24,8 +25,10 @@ public partial class Config
 
     protected override async Task OnInitializedAsync()
     {
-        _config = await ProxyConfigService.GetAsync();
-        _error = _config is null;
+        ProxyConfigLoadResult result = await ProxyConfigService.GetAsync();
+        _config = result.Config;
+        _errorMessage = result.ErrorMessage;
+        _errorDetail = result.ErrorDetail;
         _loading = false;
     }
 

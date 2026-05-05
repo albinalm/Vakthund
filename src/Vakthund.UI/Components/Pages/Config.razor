@@ -11,10 +11,15 @@
             Loading...
         </div>
     }
-    else if (_error)
+    else if (_errorMessage is not null)
     {
-        <div class="rounded-lg border border-red-800 bg-red-950/50 p-8 text-center text-sm text-red-400">
-            Could not reach the proxy. Make sure it is running.
+        <div class="rounded-lg border border-red-800 bg-red-950/50 p-8 text-center">
+            <h2 class="font-display text-lg font-semibold text-red-400">Failed to load proxy configuration</h2>
+            <p class="mt-2 text-sm text-red-400">@_errorMessage</p>
+            @if (_errorDetail is not null)
+            {
+                <p class="mt-3 font-mono text-xs text-gray-500">@_errorDetail</p>
+            }
         </div>
     }
     else if (_config is not null)
