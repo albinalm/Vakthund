@@ -2,6 +2,12 @@
   <img src="media/banner.png" alt="Vakthund logo" width="300">
 </p>
 
+<p align="center">
+  <a href="https://github.com/albinalm/Vakthund/actions/workflows/qa.yml"><img src="https://github.com/albinalm/Vakthund/actions/workflows/qa.yml/badge.svg?branch=main" alt="QA"></a>
+  <a href="https://github.com/albinalm/Vakthund/releases/latest"><img src="https://img.shields.io/github/v/release/albinalm/Vakthund" alt="Latest release"></a>
+  <a href="https://github.com/albinalm/Vakthund/pulse"><img src="https://img.shields.io/github/commit-activity/m/albinalm/Vakthund" alt="Commit activity"></a>
+  <a href="https://github.com/albinalm/Vakthund/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License"></a>
+</p>
 
 Vakthund is a local HTTP inspection proxy for development. Put it between a client and the service you are building, send traffic through it, and watch the requests appear in a Blazor UI as they happen.
 
