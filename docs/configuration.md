@@ -30,7 +30,10 @@ These settings belong to `Vakthund.UI`.
 | Environment variable | App setting | Default | Purpose |
 | --- | --- | --- | --- |
 | `HUB` | `Proxy:AuditHubUrl` | `http://proxy:8081/connect/audit` | SignalR hub URL exposed by the proxy management port. |
-| `MAX_AUDIT_ENTRIES` | `UI:MaxAuditEntries` | `50000` | Maximum entries retained by the UI in memory. |
+| `MAX_AUDIT_ENTRIES` | `UI:MaxStoredAuditEntries` | `50000` | Maximum entries to retain. Use `0` for no count limit. |
+| `STORAGE_MODE` | `UI:StorageMode` | `Memory` | `Memory` or `Disk`. Use `Disk` to persist requests across restarts. |
+| `STORAGE_PATH` | `UI:StoragePath` | `/app/data/audit.db` in Docker | Path to the SQLite database file. Relative paths are resolved from the app directory. |
+| `RETENTION` | `UI:Retention` | empty | Maximum age of retained requests. Accepts `m`, `h`, or `d` suffixes — for example `30m`, `24h`, `10d`. Entries older than this are discarded on the next incoming request. |
 | `JWE_KEY_TYPE` | `UI:JweFallback:KeyType` | empty | Global fallback JWE key type. Valid values are `Rsa`, `Ec`, `Symmetric`, and `Password`. Prefer route `auth.jwe` for route-specific keys. |
 | `JWE_KEY` | `UI:JweFallback:Key` | empty | Global fallback JWE decryption key. Prefer route `auth.jwe` for route-specific keys. |
 
@@ -174,3 +177,74 @@ Body capture is intentionally bounded.
 Set a low limit when testing high-volume or large-payload traffic. Set the value to `0` when bodies should not be captured at all.
 
 Request and response bodies can contain credentials, tokens, personal data, or business data. Treat the UI as sensitive while it is running.
+
+## Storage
+
+By default the UI keeps captured requests in memory. Everything is lost when the container restarts. Switch to disk storage to persist requests and dashboard metrics across restarts.
+
+### Enabling Disk Storage
+
+Set `STORAGE_MODE=Disk` and mount a volume at `/app/data`:
+
+```yaml
+services:
+  ui:
+    environment:
+      STORAGE_MODE: "Disk"
+    volumes:
+      - ui-data:/app/data
+
+volumes:
+  ui-data:
+```
+
+The UI writes a SQLite database to `/app/data/audit.db` by default. The volume keeps the file alive across container restarts and image rebuilds.
+
+To use a different path:
+
+```yaml
+environment:
+  STORAGE_MODE: "Disk"
+  STORAGE_PATH: "/mnt/storage/audit.db"
+volumes:
+  - ui-data:/mnt/storage
+```
+
+### Retention
+
+By default, entries are only evicted when the count cap is reached (`MAX_AUDIT_ENTRIES`). Set `RETENTION` to also discard entries older than a given age:
+
+```yaml
+environment:
+  STORAGE_MODE: "Disk"
+  RETENTION: "7d"
+  MAX_AUDIT_ENTRIES: "0"
+```
+
+`MAX_AUDIT_ENTRIES=0` disables the UI's count cap so retention is the sole eviction policy. Eviction runs on the next incoming request after an entry ages out.
+
+For truly cap-free capture, also set `MAX_QUEUED_ENTRIES=0` on the proxy. The proxy drops the oldest queued entries when its buffer fills up, so entries can be lost before they ever reach the UI regardless of storage settings.
+
+Supported suffixes:
+
+| Suffix | Unit |
+| --- | --- |
+| `m` | minutes |
+| `h` | hours |
+| `d` | days |
+
+Retention and the count cap are independent. Both apply — whichever removes an entry first wins.
+
+### What Persists
+
+In disk mode the UI stores:
+
+- All captured requests and their full detail (headers, bodies, status codes, timings).
+- The matched route configuration at the time of capture. Auth analysis in request detail remains accurate even after routes are changed or removed.
+- Dashboard metrics are rebuilt from stored requests on startup, so graphs reload with historical data.
+
+Aggregated metrics (request counts, response times, status distributions) are kept for at least one hour or for the full retention window if retention is longer. Raw request detail is subject to both the count cap and retention.
+
+### Memory Mode
+
+In memory mode (`STORAGE_MODE=Memory`, the default) all data is lost on restart. This is fine for short-lived debugging sessions. Switch to disk mode when you need data to survive container restarts or want a longer retention window without running out of memory.

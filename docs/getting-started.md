@@ -78,6 +78,31 @@ environment:
   TARGET: "http://host.docker.internal:5000"
 ```
 
+## Persisting Requests Across Restarts
+
+The default compose setup keeps requests in memory. Restarting the UI container clears everything. To persist requests, switch to disk storage and mount a volume:
+
+```yaml
+services:
+  ui:
+    environment:
+      HUB: "http://proxy:8081/connect/audit"
+      STORAGE_MODE: "Disk"
+      RETENTION: "7d"
+      MAX_AUDIT_ENTRIES: "0"
+    volumes:
+      - ui-keys:/home/app/.aspnet/DataProtection-Keys
+      - ui-data:/app/data
+
+volumes:
+  ui-keys:
+  ui-data:
+```
+
+The UI writes a SQLite database to `/app/data/audit.db` inside the container. The `ui-data` named volume keeps the file alive across restarts and image rebuilds.
+
+`RETENTION=7d` removes requests older than seven days. `MAX_AUDIT_ENTRIES=0` disables the UI's count cap so retention is the only eviction policy. For truly cap-free capture, also set `MAX_QUEUED_ENTRIES=0` on the proxy — the proxy drops the oldest queued entries when its buffer fills up, so entries can be lost before they reach the UI regardless of storage settings. Adjust all three to suit the expected traffic volume.
+
 ## Target URL
 
 `TARGET` is the simplest routing mode. When no routes file is configured, Vakthund creates one catch-all proxy route:
