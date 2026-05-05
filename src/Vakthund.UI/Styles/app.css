@@ -80,6 +80,7 @@
 
     --rz-primary: #fd9c1d;
     --rz-secondary: #e26f03;
+    --rz-secondary-light: #fb9032;
     --rz-success: #5dbf74;
     --rz-warning: #fac152;
     --rz-danger: #f9777f;
@@ -174,6 +175,7 @@ html:not(.dark) {
 
     --rz-primary: #e87c10;
     --rz-secondary: #b95708;
+    --rz-secondary-light: #ec781c;
     --rz-success: #23764f;
     --rz-warning: #8f6500;
     --rz-danger: #b4232d;
