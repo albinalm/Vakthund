@@ -14,7 +14,7 @@ public class AuditQueue
 
     public bool IsUncapped { get; }
 
-    public AuditQueue(IOptions<VakthundOptions> options)
+    public AuditQueue(IOptions<ProxyOptions> options)
     {
         int configured = options.Value.MaxQueuedEntries;
         IsUncapped = configured == 0;

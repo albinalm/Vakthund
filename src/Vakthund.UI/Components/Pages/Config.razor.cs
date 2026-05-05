@@ -11,7 +11,7 @@ public partial class Config
 {
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private ProxyConfigService ProxyConfigService { get; set; } = null!;
-    [Inject] private IOptions<VakthundOptions> UiOptions { get; set; } = null!;
+    [Inject] private IOptions<UiOptions> UiOptions { get; set; } = null!;
 
     private ProxyConfig? _config;
     private string? _errorMessage;

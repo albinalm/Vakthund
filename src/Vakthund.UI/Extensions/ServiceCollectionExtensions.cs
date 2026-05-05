@@ -9,7 +9,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddVakthundUi(this IServiceCollection services, IConfiguration config)
     {
-        services.Configure<VakthundOptions>(config.GetSection("Vakthund"));
+        services.Configure<UiOptions>(config.GetSection("UI"));
         services.AddRazorComponents().AddInteractiveServerComponents();
         services.AddRadzenComponents();
         services.AddSingleton<AuditHubConnection>();
@@ -18,7 +18,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MetricsService>();
         services.AddSingleton<JwtTokenParser>();
         services.AddSingleton<JwtSignatureValidator>();
+        services.AddSingleton<ProxyRouteMatcher>();
         services.AddSingleton<AuthVerdictService>();
+        services.AddScoped<ToastService>();
         services.AddTransient<ProxyConfigService>();
         services.AddHttpClient();
 

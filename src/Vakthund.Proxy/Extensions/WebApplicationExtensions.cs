@@ -47,7 +47,7 @@ public static class WebApplicationExtensions
             feed.WriteEventStreamAsync(ctx.Response, ctx.RequestAborted)
         ).RequireHost(managementHost);
 
-        app.MapGet("/config", (IReadOnlyList<VakthundRoute> routes, IOptions<VakthundOptions> options) =>
+        app.MapGet("/config", (IReadOnlyList<VakthundRoute> routes, IOptions<ProxyOptions> options) =>
             Results.Ok(new ProxyConfig
             {
                 Routes = routes.Select(r => new ProxyRouteInfo { Path = r.Path, Target = r.Target, Auth = r.Auth }).ToList(),

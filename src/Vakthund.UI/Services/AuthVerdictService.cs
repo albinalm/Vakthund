@@ -3,8 +3,10 @@ using Vakthund.UI.Models;
 
 namespace Vakthund.UI.Services;
 
-public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null)
+public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null, ProxyRouteMatcher? routeMatcher = null)
 {
+    private readonly ProxyRouteMatcher _routeMatcher = routeMatcher ?? new ProxyRouteMatcher();
+
     public AuthVerdict Evaluate(AuditEntry entry, IReadOnlyList<ParsedToken> tokens) =>
         Evaluate(entry, tokens, null, DateTimeOffset.UtcNow);
 
@@ -13,7 +15,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
 
     public AuthVerdict Evaluate(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, ProxyConfig? config, DateTimeOffset now)
     {
-        ProxyRouteInfo? route = FindMatchingRoute(config?.Routes, entry.Path);
+        ProxyRouteInfo? route = _routeMatcher.FindMatchingRoute(config?.Routes, entry.Path);
         return EvaluateWithoutSignature(entry, tokens, route, now);
     }
 
@@ -22,7 +24,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
 
     public async Task<AuthVerdict> EvaluateAsync(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, ProxyConfig? config, DateTimeOffset now, CancellationToken ct = default)
     {
-        ProxyRouteInfo? route = FindMatchingRoute(config?.Routes, entry.Path);
+        ProxyRouteInfo? route = _routeMatcher.FindMatchingRoute(config?.Routes, entry.Path);
         AuthVerdict verdict = EvaluateWithoutSignature(entry, tokens, route, now);
         if (verdict.Severity == AuthVerdictSeverity.Error)
         {
@@ -151,7 +153,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
                 Severity = AuthVerdictSeverity.Warning,
                 Title = "JWE decryption failed.",
                 Detail = token.JweDecryptError,
-                Hints = ["Check the configured JWE key type and key value.", "Check that the token was encrypted for the configured key."]
+                Hints = ["Check the route auth.jwe key type and key value.", "Check that the token was encrypted for the configured key."]
             };
         }
 
@@ -160,7 +162,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
             Severity = AuthVerdictSeverity.Warning,
             Title = "JWE payload is encrypted.",
             Detail = "Vakthund can read the protected header, but no decrypted payload is available.",
-            Hints = ["Configure JWE_KEY_TYPE and JWE_KEY to inspect encrypted token claims."]
+            Hints = ["Configure route auth.jwe or the global JWE_KEY_TYPE and JWE_KEY fallback to inspect encrypted token claims."]
         };
     }
 
@@ -315,34 +317,11 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
          expectation.Scopes.Count > 0 ||
          expectation.Roles.Count > 0 ||
          !string.IsNullOrWhiteSpace(expectation.OpenIdConfigurationUrl) ||
-         !string.IsNullOrWhiteSpace(expectation.JwksUrl));
+         !string.IsNullOrWhiteSpace(expectation.JwksUrl) ||
+         IsJweConfigured(expectation.Jwe));
 
-    private static ProxyRouteInfo? FindMatchingRoute(IReadOnlyList<ProxyRouteInfo>? routes, string path)
-    {
-        return routes?
-            .Where(route => RouteMatches(route.Path, path))
-            .OrderByDescending(route => RouteSpecificity(route.Path))
-            .FirstOrDefault();
-    }
-
-    private static bool RouteMatches(string routePath, string requestPath)
-    {
-        if (routePath is "/**" or "/")
-        {
-            return true;
-        }
-
-        if (routePath.EndsWith("/**", StringComparison.Ordinal))
-        {
-            string prefix = routePath[..^3];
-            return requestPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return string.Equals(routePath, requestPath, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static int RouteSpecificity(string routePath) =>
-        routePath.Replace("**", "", StringComparison.Ordinal).Length;
+    private static bool IsJweConfigured(JweDecryptionConfig jwe) =>
+        jwe.KeyType.HasValue || !string.IsNullOrWhiteSpace(jwe.Key);
 
     private static string FormatExpected(IReadOnlyList<string> values) =>
         string.Join(", ", values.Select(value => $"'{value}'"));

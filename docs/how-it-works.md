@@ -34,7 +34,7 @@ The UI reads `/config` to show active routes and capture limits. It connects to 
 `Vakthund.Proxy` is an ASP.NET Core service built on YARP. It configures routes from either:
 
 - `TARGET`, for one catch-all upstream.
-- `Vakthund:RoutesFile` or `ROUTES_FILE`, for YAML-based path routing.
+- `Proxy:RoutesFile` or `ROUTES_FILE`, for YAML-based path routing.
 
 The request interceptor captures:
 

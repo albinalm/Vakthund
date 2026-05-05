@@ -35,13 +35,24 @@ public class JwtSignatureValidator(IHttpClientFactory httpClientFactory)
             return Result(JwtSignatureValidationStatus.NotConfigured, "No JWKS or OIDC metadata endpoint is configured for this route.");
         }
 
-        string[] parts = token.RawToken.Split('.');
+        string rawJwt = token.IsJwe
+            ? token.DecryptedRawJwt ?? ""
+            : token.RawToken ?? "";
+
+        if (token.IsJwe && string.IsNullOrEmpty(rawJwt))
+        {
+            return Result(JwtSignatureValidationStatus.NotConfigured, "JWE payload is not a nested JWT; signature validation does not apply.");
+        }
+
+        string[] parts = rawJwt.Split('.');
         if (parts.Length != 3)
         {
             return Result(JwtSignatureValidationStatus.MalformedToken, "Signature validation needs a three-part JWT.");
         }
 
-        string? algorithm = token.Header?.Algorithm;
+        (string? algorithm, string? tokenKid) = token.IsJwe
+            ? ParseJwtHeader(parts[0])
+            : (token.Header?.Algorithm, token.Header?.KeyId);
         if (string.IsNullOrWhiteSpace(algorithm) || algorithm.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
             return Result(JwtSignatureValidationStatus.UnsupportedAlgorithm, $"Unsupported signing algorithm '{algorithm ?? "missing"}'.");
@@ -50,7 +61,7 @@ public class JwtSignatureValidator(IHttpClientFactory httpClientFactory)
         try
         {
             string jwksJson = await GetCachedStringAsync(_jwksCache, endpoint.Url, ct);
-            return ValidateWithJwks(jwksJson, token, parts, algorithm) with { KeySource = endpoint.Source };
+            return ValidateWithJwks(jwksJson, tokenKid, parts, algorithm) with { KeySource = endpoint.Source };
         }
         catch (FormatException ex)
         {
@@ -130,7 +141,7 @@ public class JwtSignatureValidator(IHttpClientFactory httpClientFactory)
         return value;
     }
 
-    private static JwtSignatureValidationResult ValidateWithJwks(string jwksJson, ParsedToken token, string[] parts, string algorithm)
+    private static JwtSignatureValidationResult ValidateWithJwks(string jwksJson, string? tokenKid, string[] parts, string algorithm)
     {
         using JsonDocument doc = JsonDocument.Parse(jwksJson);
         if (!doc.RootElement.TryGetProperty("keys", out JsonElement keys) || keys.ValueKind != JsonValueKind.Array)
@@ -146,7 +157,7 @@ public class JwtSignatureValidator(IHttpClientFactory httpClientFactory)
         foreach (JsonElement key in keys.EnumerateArray())
         {
             string? keyId = ReadString(key, "kid");
-            if (!string.IsNullOrWhiteSpace(token.Header?.KeyId) && keyId != token.Header.KeyId)
+            if (!string.IsNullOrWhiteSpace(tokenKid) && keyId != tokenKid)
             {
                 continue;
             }
@@ -164,7 +175,7 @@ public class JwtSignatureValidator(IHttpClientFactory httpClientFactory)
 
         if (!matchingKidSeen)
         {
-            return Result(JwtSignatureValidationStatus.UnknownKey, $"No JWKS key matched kid '{token.Header?.KeyId ?? "missing"}'.");
+            return Result(JwtSignatureValidationStatus.UnknownKey, $"No JWKS key matched kid '{tokenKid ?? "missing"}'.");
         }
 
         return supportedAlgorithmSeen
@@ -268,6 +279,22 @@ public class JwtSignatureValidator(IHttpClientFactory httpClientFactory)
         return payload.TryGetProperty(propertyName, out JsonElement property) && property.ValueKind == JsonValueKind.String
             ? property.GetString()
             : null;
+    }
+
+    private static (string? Algorithm, string? KeyId) ParseJwtHeader(string base64UrlHeader)
+    {
+        try
+        {
+            byte[] bytes = Base64Url.DecodeBytes(base64UrlHeader);
+            using JsonDocument doc = JsonDocument.Parse(bytes);
+            string? alg = ReadString(doc.RootElement, "alg");
+            string? kid = ReadString(doc.RootElement, "kid");
+            return (alg, kid);
+        }
+        catch
+        {
+            return (null, null);
+        }
     }
 
     private static string KeyMessage(string message, string? keyId) =>

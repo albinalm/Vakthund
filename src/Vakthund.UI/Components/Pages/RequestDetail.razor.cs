@@ -15,6 +15,7 @@ public partial class RequestDetail
     [Inject] private JwtTokenParser JwtTokenParser { get; set; } = null!;
     [Inject] private AuthVerdictService AuthVerdictService { get; set; } = null!;
     [Inject] private ProxyConfigService ProxyConfigService { get; set; } = null!;
+    [Inject] private ProxyRouteMatcher ProxyRouteMatcher { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
 
     private AuditEntry? _entry;
@@ -40,11 +41,14 @@ public partial class RequestDetail
         _queriesExpanded = false;
         _headersExpanded = true;
         _cookiesExpanded = false;
+        ProxyConfig? config = await LoadProxyConfigAsync();
+        ProxyRouteInfo? route = _entry is not null
+            ? ProxyRouteMatcher.FindMatchingRoute(config?.Routes, _entry.Path)
+            : null;
         _parsedTokens = _entry is not null
-            ? JwtTokenParser.Parse(_entry.Headers)
+            ? JwtTokenParser.Parse(_entry.Headers, route?.Auth)
             : [];
         _bearerToken = _parsedTokens.FirstOrDefault(IsBearerToken);
-        ProxyConfig? config = await LoadProxyConfigAsync();
         _authVerdict = _entry is not null && ShouldShowAuthVerdict(_entry, _parsedTokens)
             ? await AuthVerdictService.EvaluateAsync(_entry, _parsedTokens, config)
             : null;

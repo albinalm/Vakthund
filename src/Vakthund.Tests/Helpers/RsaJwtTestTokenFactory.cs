@@ -40,7 +40,7 @@ public static class RsaJwtTestTokenFactory
 
     public static ParsedToken ParseToken(string token)
     {
-        var parser = new JwtTokenParser(Options.Create(new VakthundOptions()));
+        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
         return Assert.Single(parser.Parse(new Dictionary<string, string>
         {
             ["Authorization"] = $"Bearer {token}"

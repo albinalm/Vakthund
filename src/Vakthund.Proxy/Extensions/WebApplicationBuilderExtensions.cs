@@ -15,22 +15,22 @@ public static class WebApplicationBuilderExtensions
 
         if (Environment.GetEnvironmentVariable("MAX_BODY_BYTES") is { Length: > 0 } maxBody)
         {
-            builder.Configuration["Vakthund:MaxBodyBytes"] = maxBody;
+            builder.Configuration["Proxy:MaxBodyBytes"] = maxBody;
         }
 
         if (Environment.GetEnvironmentVariable("MAX_RESPONSE_BODY_BYTES") is { Length: > 0 } maxResponseBody)
         {
-            builder.Configuration["Vakthund:MaxResponseBodyBytes"] = maxResponseBody;
+            builder.Configuration["Proxy:MaxResponseBodyBytes"] = maxResponseBody;
         }
 
         if (Environment.GetEnvironmentVariable("MAX_QUEUED_ENTRIES") is { Length: > 0 } maxQueue)
         {
-            builder.Configuration["Vakthund:MaxQueuedEntries"] = maxQueue;
+            builder.Configuration["Proxy:MaxQueuedEntries"] = maxQueue;
         }
 
         if (Environment.GetEnvironmentVariable("ROUTES_FILE") is { Length: > 0 } routesFile)
         {
-            builder.Configuration["Vakthund:RoutesFile"] = routesFile;
+            builder.Configuration["Proxy:RoutesFile"] = routesFile;
         }
 
         return builder;
@@ -39,7 +39,7 @@ public static class WebApplicationBuilderExtensions
     public static WebApplicationBuilder AddVakthundProxy(this WebApplicationBuilder builder)
     {
         string? routesFilePath = RoutesFileResolver.Resolve(
-            builder.Configuration["Vakthund:RoutesFile"],
+            builder.Configuration["Proxy:RoutesFile"],
             builder.Environment.ContentRootPath,
             builder.Environment.IsDevelopment());
         List<VakthundRoute>? routes = RoutesLoader.TryLoad(routesFilePath);
@@ -49,7 +49,7 @@ public static class WebApplicationBuilderExtensions
             string targetUrl = builder.Configuration["Proxy:TargetUrl"]?.Trim() ?? "";
             if (string.IsNullOrEmpty(targetUrl))
             {
-                throw new InvalidOperationException("No routes configured. Set the TARGET env var, provide a routes.yaml, or configure Vakthund:RoutesFile in appsettings.");
+                throw new InvalidOperationException("No routes configured. Set the TARGET env var, provide a routes.yaml, or configure Proxy:RoutesFile in appsettings.");
             }
 
             routes = [new VakthundRoute { Path = "/**", Target = targetUrl }];

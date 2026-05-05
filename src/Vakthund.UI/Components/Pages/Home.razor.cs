@@ -15,10 +15,10 @@ public partial class Home : IDisposable
     [Inject] private AuditStore AuditStore { get; set; } = null!;
     [Inject] private MetricsStore MetricsStore { get; set; } = null!;
     [Inject] private MetricsService MetricsService { get; set; } = null!;
-    [Inject] private IOptions<VakthundOptions> Options { get; set; } = null!;
+    [Inject] private IOptions<UiOptions> Options { get; set; } = null!;
 
     private DashboardMetrics _metrics = null!;
-    private int MaxAuditEntries => Options.Value.MaxAuditEntries;
+    private int MaxAuditEntries => Options.Value.MaxStoredAuditEntries;
     private readonly CancellationTokenSource _refreshCts = new();
     private bool _disposed;
 

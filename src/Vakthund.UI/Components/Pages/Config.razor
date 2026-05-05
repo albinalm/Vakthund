@@ -55,6 +55,10 @@
                                     {
                                         <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">role @role</span>
                                     }
+                                    @if (route.Auth.Jwe.KeyType.HasValue)
+                                    {
+                                        <span class="rounded border border-violet-600 px-1.5 py-0.5 font-mono text-xs text-violet-400">jwe @route.Auth.Jwe.KeyType.Value</span>
+                                    }
                                 </div>
                             }
                         </div>
@@ -89,21 +93,4 @@
             </div>
         </Section>
     }
-
-    <Section Title="Token Decryption" Expanded="_tokenDecryptionExpanded" OnToggle="ToggleTokenDecryption">
-        <div class="p-4">
-            <div class="rounded border border-gray-800 bg-gray-950 p-3">
-                <div class="text-xs text-gray-500">JWE Key Type</div>
-                @if (UiOptions.Value.Jwe.KeyType.HasValue)
-                {
-                    <div class="mt-1 font-mono text-sm text-emerald-400">@UiOptions.Value.Jwe.KeyType.Value</div>
-                }
-                else
-                {
-                    <div class="mt-1 font-mono text-sm text-gray-600">Not configured</div>
-                }
-            </div>
-        </div>
-    </Section>
-
 </div>

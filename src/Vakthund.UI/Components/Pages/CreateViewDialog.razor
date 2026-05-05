@@ -1,0 +1,49 @@
+@using Microsoft.AspNetCore.Components.Web
+@inject DialogService DialogService
+
+<div class="space-y-4">
+    <p class="text-sm text-gray-500">Save the current column layout as a named view.</p>
+    <input @bind="_name"
+           @bind:event="oninput"
+           @onkeydown="OnKeyDownAsync"
+           placeholder="View name"
+           class="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-600 focus:border-amber-500"/>
+    <div class="flex justify-end gap-2">
+        <button @onclick="() => DialogService.Close(null)"
+                class="rounded border border-gray-700 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:border-gray-500 hover:text-gray-200">
+            Cancel
+        </button>
+        <button @onclick="Confirm"
+                disabled="@(string.IsNullOrWhiteSpace(_name))"
+                class="rounded border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-400 transition-colors hover:border-amber-500 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40">
+            Save
+        </button>
+    </div>
+</div>
+
+@code {
+    private string _name = "";
+
+    private void Confirm()
+    {
+        string name = _name.Trim();
+        if (!string.IsNullOrEmpty(name))
+        {
+            DialogService.Close(name);
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Confirm();
+        }
+        else if (e.Key == "Escape")
+        {
+            DialogService.Close(null);
+        }
+
+        await Task.CompletedTask;
+    }
+}

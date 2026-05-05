@@ -26,7 +26,7 @@ services:
       - "8082:8080"
     environment:
       - HUB=http://proxy:8081/connect/audit
-      # JWE decryption (optional) — set JWE_KEY_TYPE and JWE_KEY to decode encrypted tokens
+      # Global JWE fallback (optional) — prefer route auth.jwe for route-specific encrypted tokens
       # - JWE_KEY_TYPE=${JWE_KEY_TYPE:-}
       # - JWE_KEY=${JWE_KEY:-}
     volumes:

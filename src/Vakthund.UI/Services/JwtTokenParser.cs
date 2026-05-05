@@ -3,38 +3,41 @@ using System.Text;
 using System.Text.Json;
 using Jose;
 using Microsoft.Extensions.Options;
+using Vakthund.Shared.Models;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Base64UrlHelper = Vakthund.UI.Helpers.Base64Url;
 
 namespace Vakthund.UI.Services;
 
-public class JwtTokenParser(IOptions<VakthundOptions> options)
+public class JwtTokenParser(IOptions<UiOptions> options)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly JweOptions _jwe = options.Value.Jwe;
+    public IReadOnlyList<ParsedToken> Parse(IReadOnlyDictionary<string, string> headers) =>
+        Parse(headers, null);
 
-    public IReadOnlyList<ParsedToken> Parse(IReadOnlyDictionary<string, string> headers)
+    public IReadOnlyList<ParsedToken> Parse(IReadOnlyDictionary<string, string> headers, AuthExpectation? routeAuth)
     {
-        return headers.Select(h => TryParseHeader(h.Key, h.Value)).OfType<ParsedToken>().ToList();
+        JweOptions jwe = ResolveJweOptions(routeAuth?.Jwe);
+        return headers.Select(h => TryParseHeader(h.Key, h.Value, jwe)).OfType<ParsedToken>().ToList();
     }
 
-    private ParsedToken? TryParseHeader(string name, string value)
+    private ParsedToken? TryParseHeader(string name, string value, JweOptions jwe)
     {
         if (name.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
         {
-            return ParseAuthHeader(name, value);
+            return ParseAuthHeader(name, value, jwe);
         }
 
         string rawToken = value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
             ? value["Bearer ".Length..].Trim()
             : value;
 
-        return TryDecodeToken(name, null, rawToken);
+        return TryDecodeToken(name, null, rawToken, jwe);
     }
 
-    private ParsedToken ParseAuthHeader(string name, string value)
+    private ParsedToken ParseAuthHeader(string name, string value, JweOptions jwe)
     {
         int spaceIdx = value.IndexOf(' ');
         if (spaceIdx < 0)
@@ -47,7 +50,7 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
 
         if (scheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase))
         {
-            return TryDecodeToken(name, scheme, rawToken)
+            return TryDecodeToken(name, scheme, rawToken, jwe)
                    ?? new ParsedToken { HeaderName = name, Scheme = scheme, RawToken = rawToken };
         }
 
@@ -60,13 +63,13 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
         return new ParsedToken { HeaderName = name, Scheme = scheme, RawToken = rawToken };
     }
 
-    private ParsedToken? TryDecodeToken(string name, string? scheme, string token)
+    private ParsedToken? TryDecodeToken(string name, string? scheme, string token, JweOptions jwe)
     {
         int partCount = token.AsSpan().Count('.') + 1;
 
         if (partCount == 5)
         {
-            return DecodeJwe(name, scheme, token);
+            return DecodeJwe(name, scheme, token, jwe);
         }
 
         if (partCount == 3)
@@ -94,27 +97,29 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
         return null;
     }
 
-    private ParsedToken DecodeJwe(string name, string? scheme, string token)
+    private ParsedToken DecodeJwe(string name, string? scheme, string token, JweOptions jwe)
     {
         string? headerJson = DecodeBase64UrlJson(token.AsSpan()[..token.IndexOf('.')].ToString());
         string? payloadJson = null;
         string? decryptError = null;
+        string? innerJwt = null;
         TokenHeaderSummary? header = TryParseHeaderSummary(headerJson);
         DateTimeOffset? expiry = null;
         TokenClaimSummary? claims = null;
         var expired = false;
 
-        if (_jwe.KeyType.HasValue && !string.IsNullOrEmpty(_jwe.Key))
+        if (jwe.KeyType.HasValue && !string.IsNullOrEmpty(jwe.Key))
         {
             try
             {
-                object key = BuildKey(_jwe);
+                object key = BuildKey(jwe);
                 string decrypted = JWT.Decode(token, key);
 
                 if (decrypted.AsSpan().Count('.') == 2)
                 {
                     // cty:JWT — decrypted payload is itself a JWT (nested token)
                     (_, payloadJson, expiry, expired, claims, _) = TryParseJwt(decrypted);
+                    innerJwt = decrypted;
                 }
                 else
                 {
@@ -147,9 +152,28 @@ public class JwtTokenParser(IOptions<VakthundOptions> options)
             JwtExpiry = expiry,
             JwtExpired = expired,
             Claims = claims,
-            JweDecryptError = decryptError
+            JweDecryptError = decryptError,
+            DecryptedRawJwt = innerJwt
         };
     }
+
+    private JweOptions ResolveJweOptions(JweDecryptionConfig? routeJwe)
+    {
+        if (IsConfigured(routeJwe))
+        {
+            return new JweOptions
+            {
+                KeyType = routeJwe?.KeyType,
+                Key = routeJwe?.Key
+            };
+        }
+
+        return new JweOptions();
+    }
+
+    private static bool IsConfigured(JweDecryptionConfig? jwe) =>
+        jwe is not null &&
+        (jwe.KeyType.HasValue || !string.IsNullOrWhiteSpace(jwe.Key));
 
     private static object BuildKey(JweOptions opts) => opts.KeyType switch
     {

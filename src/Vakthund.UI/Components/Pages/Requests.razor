@@ -8,7 +8,7 @@
             <h1 class="font-display text-2xl font-semibold text-gray-100">Requests</h1>
             @if (MaxAuditEntries > 0)
             {
-                <p class="mt-1 text-sm text-gray-500">@_visibleEntries.Count() of @_entries.Count captured requests</p>
+                <p class="mt-1 text-sm text-gray-500">@VisibleEntries.Count() of @_entries.Count captured requests</p>
                 <p class="mt-1 text-xs text-gray-600">
                     This page keeps up to the latest @MaxAuditEntries.ToString("N0") requests. Older requests are removed
                     from the table when that limit is reached.
@@ -21,19 +21,52 @@
                    class="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-600 focus:border-amber-500 md:w-96"
                    placeholder="Filter by method, status, host, path, or query"/>
             <button @onclick="RefreshAsync"
-                    class="flex items-center gap-1.5 rounded border border-amber-600 px-3 py-2 text-sm font-medium text-amber-400 transition-colors hover:border-amber-400 hover:text-amber-300">
-                <span class="material-symbols-outlined text-base">refresh</span>
+                    class="@(_hasNewRequests ? "btn-refresh-pending" : "") flex items-center gap-1.5 rounded border border-amber-600 px-3 py-2 text-sm font-medium text-amber-400 transition-colors hover:border-amber-400 hover:text-amber-300 active:scale-95 active:border-amber-300 active:text-amber-200 transition-transform">
+                <span class="material-symbols-outlined text-base @(_hasNewRequests ? "animate-spin-slow" : "")">refresh</span>
                 Refresh
             </button>
         </div>
     </header>
 
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-600">View</span>
+        <select value="@_activeProfileName" @onchange="OnProfileChangedAsync"
+                class="rounded border border-gray-700 bg-gray-950 px-2 py-1.5 text-sm text-gray-300 outline-none transition-colors focus:border-amber-500">
+            <option value="@DefaultProfileName">@DefaultProfileName</option>
+            @foreach (string name in _profiles.Keys.Where(k => k != DefaultProfileName).Order())
+            {
+                <option value="@name">@name</option>
+            }
+            <option value="__create__">＋ Create view</option>
+        </select>
+        <button @onclick="SaveCurrentLayoutAsync"
+                title="Save current layout to this view"
+                class="text-gray-500 transition-colors hover:text-amber-400">
+            <span class="material-symbols-outlined text-xl">save</span>
+        </button>
+        @if (_activeProfileName != DefaultProfileName)
+        {
+            <button @onclick="TryDeleteProfileAsync"
+                    title="Delete this view"
+                    class="text-gray-500 transition-colors hover:text-red-400">
+                <span class="material-symbols-outlined text-xl">delete</span>
+            </button>
+        }
+    </div>
+
     <div class="overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-        <RadzenDataGrid @ref="_grid" Data="@_visibleEntries" TItem="AuditEntry" AllowSorting="true" AllowPaging="true"
+        <RadzenDataGrid @key="_activeProfileName" @ref="_grid" @bind-Settings="@Settings" Data="@VisibleEntries" TItem="AuditEntry" AllowSorting="true" AllowPaging="true"
                         PageSize="10" PageSizeOptions="_pageSizeOptions"
-                        EmptyText="No matching requests." AllowColumnResize="true" RowClick="OnRowClick"
+                        EmptyText="No matching requests." AllowColumnResize="true" AllowColumnReorder="true"
                         PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true">
             <Columns>
+                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Open" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Width="56px">
+                    <Template Context="entry">
+                        <a href="/request/@entry.Id" class="flex items-center justify-center text-amber-600 transition-colors hover:text-amber-400" title="Open">
+                            <span class="material-symbols-outlined text-lg">open_in_new</span>
+                        </a>
+                    </Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="Timestamp" Title="Time" Width="150px">
                     <Template Context="entry">
                         <span
@@ -82,3 +115,4 @@
         </RadzenDataGrid>
     </div>
 </div>
+

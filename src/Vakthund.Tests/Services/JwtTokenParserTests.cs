@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
+using Jose;
 using Microsoft.Extensions.Options;
+using Vakthund.Shared.Models;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
@@ -12,7 +14,7 @@ public class JwtTokenParserTests
     [Fact]
     public void Parse_DecodesBearerJwt_FromAuthorizationHeader()
     {
-        var parser = new JwtTokenParser(Options.Create(new VakthundOptions()));
+        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
         string token = BuildJwt(new
         {
             alg = "none",
@@ -60,7 +62,7 @@ public class JwtTokenParserTests
     [Fact]
     public void Parse_DecodesBasicCredentials_FromAuthorizationHeader()
     {
-        var parser = new JwtTokenParser(Options.Create(new VakthundOptions()));
+        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
         string credentials = Convert.ToBase64String("alice:secret"u8.ToArray());
 
         ParsedToken parsed = Assert.Single(parser.Parse(new Dictionary<string, string>
@@ -76,7 +78,7 @@ public class JwtTokenParserTests
     [Fact]
     public void Parse_IgnoresHeadersWithoutRecognizableTokens()
     {
-        var parser = new JwtTokenParser(Options.Create(new VakthundOptions()));
+        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
 
         IReadOnlyList<ParsedToken> parsed = parser.Parse(new Dictionary<string, string>
         {
@@ -86,8 +88,54 @@ public class JwtTokenParserTests
         Assert.Empty(parsed);
     }
 
+    [Fact]
+    public void Parse_DecryptsJwe_WithRouteKey()
+    {
+        byte[] routeKey = BuildSymmetricKey(1);
+        string token = BuildJwe(routeKey, new
+        {
+            sub = "route-user",
+            aud = "orders-api"
+        });
+        var parser = new JwtTokenParser(Options.Create(new UiOptions()));
+
+        ParsedToken parsed = Assert.Single(parser.Parse(
+            new Dictionary<string, string>
+            {
+                ["Authorization"] = $"Bearer {token}"
+            },
+            new AuthExpectation
+            {
+                Jwe = new JweDecryptionConfig
+                {
+                    KeyType = JweKeyType.Symmetric,
+                    Key = Convert.ToBase64String(routeKey)
+                }
+            }));
+
+        Assert.True(parsed.IsJwe);
+        Assert.Null(parsed.JweDecryptError);
+        Assert.NotNull(parsed.JwtPayloadJson);
+        Assert.NotNull(parsed.Claims);
+        Assert.Equal("route-user", parsed.Claims.Subject);
+        Assert.Equal(["orders-api"], parsed.Claims.Audiences);
+    }
+    
     private static string BuildJwt(object header, object payload) =>
         string.Join('.', Base64Url(header), Base64Url(payload), "");
+
+    private static string BuildJwe(byte[] key, object payload)
+    {
+        string json = JsonSerializer.Serialize(payload);
+        return JWT.Encode(json, key, JweAlgorithm.DIR, JweEncryption.A256GCM);
+    }
+
+    private static byte[] BuildSymmetricKey(byte seed)
+    {
+        byte[] key = new byte[32];
+        Array.Fill(key, seed);
+        return key;
+    }
 
     private static string Base64Url(object value)
     {

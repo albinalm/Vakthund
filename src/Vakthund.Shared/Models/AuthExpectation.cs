@@ -9,4 +9,5 @@ public class AuthExpectation
     public List<string> Roles { get; set; } = [];
     public string? OpenIdConfigurationUrl { get; set; }
     public string? JwksUrl { get; set; }
+    public JweDecryptionConfig Jwe { get; set; } = new();
 }

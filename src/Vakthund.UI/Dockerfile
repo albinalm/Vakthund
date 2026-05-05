@@ -6,9 +6,9 @@ EXPOSE 8080
 ENV HUB=""
 # MAX_AUDIT_ENTRIES: maximum number of requests kept in memory (default 50 000)
 ENV MAX_AUDIT_ENTRIES=50000
-# JWE_KEY_TYPE: key type for JWE decryption — Rsa | Ec | Symmetric | Password
+# JWE_KEY_TYPE: global fallback key type for JWE decryption — Rsa | Ec | Symmetric | Password
 ENV JWE_KEY_TYPE=""
-# JWE_KEY: decryption key — PEM string (Rsa/Ec), base64-encoded bytes (Symmetric), or plain password (Password)
+# JWE_KEY: global fallback decryption key — PEM string (Rsa/Ec), base64-encoded bytes (Symmetric), or plain password (Password)
 ENV JWE_KEY=""
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build

@@ -1,0 +1,129 @@
+@using Vakthund.UI.Enums
+@using Vakthund.UI.Models
+@using Vakthund.UI.Services
+@implements IDisposable
+@inject ToastService ToastService
+@rendermode InteractiveServer
+
+<div class="fixed bottom-5 right-5 z-50 flex flex-col gap-3">
+    @foreach (ToastMessage toast in ToastService.Messages.ToList())
+    {
+        <div class="relative w-80 overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
+            <div class="absolute inset-y-0 left-0 w-0.5 @AccentBgClass(toast.Color)"></div>
+            <div class="flex items-start gap-3 px-4 py-3 pl-5">
+                <span class="material-symbols-outlined mt-px text-xl @AccentTextClass(toast.Color)">
+                    @IconName(toast.Color)
+                </span>
+                <div class="min-w-0 flex-1">
+                    <p class="font-display text-sm font-semibold text-gray-100">@toast.Summary</p>
+                    @if (!string.IsNullOrEmpty(toast.Detail))
+                    {
+                        <p class="mt-0.5 text-xs text-gray-400">@toast.Detail</p>
+                    }
+                </div>
+                <button @onclick="() => Dismiss(toast)" class="text-gray-600 transition-colors hover:text-gray-300">
+                    <span class="material-symbols-outlined text-base">close</span>
+                </button>
+            </div>
+            <div class="toast-progress h-0.5 @AccentBgClass(toast.Color)" style="animation-duration: @(toast.Duration)ms"></div>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly Dictionary<Guid, CancellationTokenSource> _timers = [];
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnChanged += OnToastsChanged;
+    }
+
+    private void OnToastsChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            foreach (ToastMessage toast in ToastService.Messages)
+            {
+                if (!_timers.ContainsKey(toast.Id))
+                {
+                    StartTimer(toast);
+                }
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private void StartTimer(ToastMessage toast)
+    {
+        var cts = new CancellationTokenSource();
+        _timers[toast.Id] = cts;
+        _ = DismissAfterAsync(toast.Id, toast.Duration, cts.Token);
+    }
+
+    private async Task DismissAfterAsync(Guid id, int duration, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(duration, ct);
+            await InvokeAsync(() =>
+            {
+                _timers.Remove(id);
+                ToastService.Dismiss(id);
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void Dismiss(ToastMessage toast)
+    {
+        if (_timers.TryGetValue(toast.Id, out CancellationTokenSource? cts))
+        {
+            cts.Cancel();
+            cts.Dispose();
+            _timers.Remove(toast.Id);
+        }
+
+        ToastService.Dismiss(toast.Id);
+    }
+
+    private static string AccentBgClass(ToastColor color) => color switch
+    {
+        ToastColor.Success => "bg-emerald-400",
+        ToastColor.Warning => "bg-amber-400",
+        ToastColor.Error => "bg-red-400",
+        ToastColor.Accent => "bg-amber-500",
+        _ => "bg-amber-500"
+    };
+
+    private static string AccentTextClass(ToastColor color) => color switch
+    {
+        ToastColor.Success => "text-emerald-400",
+        ToastColor.Warning => "text-amber-400",
+        ToastColor.Error => "text-red-400",
+        ToastColor.Accent => "text-amber-500",
+        _ => "text-amber-500"
+    };
+
+    private static string IconName(ToastColor color) => color switch
+    {
+        ToastColor.Success => "check_circle",
+        ToastColor.Warning => "warning",
+        ToastColor.Error => "error",
+        _ => "info"
+    };
+
+    public void Dispose()
+    {
+        ToastService.OnChanged -= OnToastsChanged;
+        foreach (CancellationTokenSource cts in _timers.Values)
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+
+        _timers.Clear();
+    }
+}

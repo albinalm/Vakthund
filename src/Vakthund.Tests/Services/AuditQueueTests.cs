@@ -11,7 +11,7 @@ public class AuditQueueTests
     public async Task ReadBatchAsync_SummarizesDroppedEntriesWhenQueueIsFull()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        var queue = new AuditQueue(Options.Create(new VakthundOptions { MaxQueuedEntries = 1 }));
+        var queue = new AuditQueue(Options.Create(new ProxyOptions { MaxQueuedEntries = 1 }));
         AuditEntry dropped = Entry(now, statusCode: 500, durationMs: 100, targetDurationMs: 90);
         AuditEntry retained = Entry(now.AddSeconds(1), statusCode: 200, durationMs: 20);
 

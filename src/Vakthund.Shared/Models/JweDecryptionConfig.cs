@@ -1,8 +1,6 @@
-using Vakthund.Shared.Models;
+namespace Vakthund.Shared.Models;
 
-namespace Vakthund.UI.Options;
-
-public class JweOptions
+public class JweDecryptionConfig
 {
     public JweKeyType? KeyType { get; set; }
     public string? Key { get; set; }

@@ -350,3 +350,31 @@ html:not(.dark) .rz-paginator-page.rz-state-active {
 
 .hljs-emphasis { font-style: italic; }
 .hljs-strong   { font-weight: bold; }
+
+@keyframes toast-progress {
+    from { width: 100%; }
+    to   { width: 0%; }
+}
+
+.toast-progress {
+    animation: toast-progress linear forwards;
+}
+
+@keyframes spin-slow {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes btn-glow {
+    0%, 100% { box-shadow: 0 0 0 1px #fd9c1d55, 0 0 8px 0 #fd9c1d44; }
+    50%       { box-shadow: 0 0 0 1px #fd9c1daa, 0 0 14px 2px #fd9c1d77; }
+}
+
+.animate-spin-slow {
+    animation: spin-slow 1.5s linear infinite;
+}
+
+.btn-refresh-pending {
+    border-color: var(--color-amber-500);
+    color: var(--color-amber-400);
+    animation: btn-glow 2s ease-in-out infinite;
+}

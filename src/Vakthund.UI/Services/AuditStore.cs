@@ -4,7 +4,7 @@ using Vakthund.UI.Options;
 
 namespace Vakthund.UI.Services;
 
-public class AuditStore(IOptions<VakthundOptions> options)
+public class AuditStore(IOptions<UiOptions> options)
 {
     private readonly Dictionary<Guid, AuditEntry> _entries = [];
     private readonly Lock _lock = new();
@@ -66,7 +66,7 @@ public class AuditStore(IOptions<VakthundOptions> options)
 
     private void Trim()
     {
-        int max = options.Value.MaxAuditEntries;
+        int max = options.Value.MaxStoredAuditEntries;
         if (max == 0 || _entries.Count <= max)
         {
             return;

@@ -9,5 +9,8 @@ routes:
       roles: []
       jwksUrl:
       openIdConfigurationUrl:
+      jwe:
+        keyType:
+        key:
   - path: /**
     target: http://localhost:3000

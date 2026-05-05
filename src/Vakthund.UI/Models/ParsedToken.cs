@@ -17,4 +17,5 @@ public record ParsedToken
     public TokenClaimSummary? Claims { get; init; }
     public bool IsJwe { get; init; }
     public string? JweDecryptError { get; init; }
+    public string? DecryptedRawJwt { get; init; }
 }

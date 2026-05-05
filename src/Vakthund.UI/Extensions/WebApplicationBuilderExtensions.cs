@@ -11,17 +11,7 @@ public static class WebApplicationBuilderExtensions
 
         if (Environment.GetEnvironmentVariable("MAX_AUDIT_ENTRIES") is { Length: > 0 } maxEntries)
         {
-            builder.Configuration["Vakthund:MaxAuditEntries"] = maxEntries;
-        }
-
-        if (Environment.GetEnvironmentVariable("JWE_KEY_TYPE") is { Length: > 0 } jweKeyType)
-        {
-            builder.Configuration["Vakthund:Jwe:KeyType"] = jweKeyType;
-        }
-
-        if (Environment.GetEnvironmentVariable("JWE_KEY") is { Length: > 0 } jweKey)
-        {
-            builder.Configuration["Vakthund:Jwe:Key"] = jweKey;
+            builder.Configuration["UI:MaxAuditEntries"] = maxEntries;
         }
 
         return builder;

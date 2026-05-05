@@ -10,7 +10,7 @@ public class AuditStoreTests
     [Fact]
     public void Add_TrimsOldestEntries_WhenCapacityIsExceeded()
     {
-        var store = new AuditStore(Options.Create(new VakthundOptions { MaxAuditEntries = 2 }));
+        var store = new AuditStore(Options.Create(new UiOptions { MaxStoredAuditEntries = 2 }));
         AuditEntry oldest = Entry(timestamp: DateTimeOffset.UtcNow.AddMinutes(-3));
         AuditEntry newest = Entry(timestamp: DateTimeOffset.UtcNow);
         AuditEntry middle = Entry(timestamp: DateTimeOffset.UtcNow.AddMinutes(-1));
@@ -26,7 +26,7 @@ public class AuditStoreTests
     [Fact]
     public void AddRange_ReplacesEntriesWithSameId()
     {
-        var store = new AuditStore(Options.Create(new VakthundOptions { MaxAuditEntries = 10 }));
+        var store = new AuditStore(Options.Create(new UiOptions { MaxStoredAuditEntries = 10 }));
         var id = Guid.NewGuid();
 
         store.AddRange(

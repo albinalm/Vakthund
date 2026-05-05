@@ -8,7 +8,7 @@ using Yarp.ReverseProxy.Model;
 
 namespace Vakthund.Proxy.Middlewares;
 
-public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed, IOptions<VakthundOptions> options) : IMiddleware
+public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed, IOptions<ProxyOptions> options) : IMiddleware
 {
     public static readonly object AuditEntryItemKey = new();
     public static readonly object ProxyStartTimestampItemKey = new();
