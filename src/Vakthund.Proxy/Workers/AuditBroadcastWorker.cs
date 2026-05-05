@@ -16,42 +16,24 @@ public class AuditBroadcastWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var batch = new List<AuditEntry>(MaxBatchSize);
-
-        while (await queue.Reader.WaitToReadAsync(stoppingToken))
+        while (!stoppingToken.IsCancellationRequested)
         {
-            DrainBatch(batch);
-
-            if (batch.Count < MaxBatchSize)
-            {
-                await Task.Delay(FlushInterval, stoppingToken);
-                DrainBatch(batch);
-            }
-
+            AuditBatch batch = await queue.ReadBatchAsync(MaxBatchSize, FlushInterval, stoppingToken);
             await FlushAsync(batch, stoppingToken);
         }
     }
 
-    private void DrainBatch(List<AuditEntry> batch)
+    private async Task FlushAsync(AuditBatch batch, CancellationToken stoppingToken)
     {
-        while (batch.Count < MaxBatchSize && queue.Reader.TryRead(out AuditEntry? entry))
-            batch.Add(entry);
-    }
-
-    private async Task FlushAsync(List<AuditEntry> batch, CancellationToken stoppingToken)
-    {
-        if (batch.Count == 0)
+        if (batch.Entries.Count == 0 && batch.Loss is null)
         {
             return;
         }
 
-        AuditEntry[] entries = batch.ToArray();
-        batch.Clear();
-
         try
         {
-            string json = JsonSerializer.Serialize(entries);
-            await hub.Clients.All.SendAsync("OnRequests", json, stoppingToken);
+            string json = JsonSerializer.Serialize(batch);
+            await hub.Clients.All.SendAsync("OnAuditBatch", json, stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -59,7 +41,9 @@ public class AuditBroadcastWorker(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to broadcast {Count} audit entries.", entries.Length);
+            logger.LogWarning(ex, "Failed to broadcast {Count} audit entries and {LossCount} dropped audit entries.",
+                batch.Entries.Count,
+                batch.Loss?.Count ?? 0);
         }
     }
 }
