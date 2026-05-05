@@ -5,19 +5,24 @@ namespace Vakthund.UI.Services;
 
 public class MetricsService
 {
-    private const int ChartWindowMinutes = 10;
+    private const int AggregateWindowMinutes = 60;
+    private const int RequestChartWindowSeconds = 60;
     private static readonly TimeSpan RecentWindow = TimeSpan.FromMinutes(1);
 
     public DashboardMetrics Compute(
         MetricsSnapshot snapshot,
         int retainedRequestCount,
-        AuditEntry? latestRequest)
+        AuditEntry? latestRequest,
+        IReadOnlyDictionary<int, int>? retainedStatusCounts = null,
+        DateTimeOffset? now = null)
     {
-        DateTimeOffset anchor = snapshot.LatestTimestamp ?? DateTimeOffset.UtcNow;
-        DateTime latestMinute = MetricsStore.MinuteBucket(anchor);
-        DateTime minuteCutoff = latestMinute.AddMinutes(-ChartWindowMinutes + 1);
-        DateTime secondCutoff = MetricsStore.SecondBucket(anchor - RecentWindow);
+        DateTimeOffset anchor = now ?? DateTimeOffset.UtcNow;
+        DateTimeOffset aggregateAnchor = snapshot.LatestTimestamp ?? anchor;
+        DateTime latestMinute = MetricsStore.MinuteBucket(aggregateAnchor);
+        DateTime minuteCutoff = latestMinute.AddMinutes(-AggregateWindowMinutes + 1);
         DateTime latestSecond = MetricsStore.SecondBucket(anchor);
+        DateTime secondCutoff = latestSecond.AddSeconds(-(int)RecentWindow.TotalSeconds + 1);
+        DateTime requestChartCutoff = latestSecond.AddSeconds(-RequestChartWindowSeconds + 1);
 
         MetricsBucketSnapshot[] buckets = snapshot.MinuteBuckets
             .Where(bucket => bucket.Start >= minuteCutoff && bucket.Start <= latestMinute)
@@ -39,31 +44,35 @@ public class MetricsService
         if (recentSecondBuckets.Length > 0)
         {
             int recentTotal = recentSecondBuckets.Sum(bucket => bucket.Value);
-            double elapsedSeconds = (recentSecondBuckets.Last().Key - recentSecondBuckets.First().Key).TotalSeconds + 1;
+            double elapsedSeconds = Math.Min(
+                RecentWindow.TotalSeconds,
+                (latestSecond - recentSecondBuckets.First().Key).TotalSeconds + 1);
             requestsPerMin = (int)Math.Round(recentTotal / elapsedSeconds * 60.0);
         }
 
-        Dictionary<int, int> statusCounts = [];
+        Dictionary<int, int> aggregateStatusCounts = [];
         foreach (MetricsBucketSnapshot bucket in buckets)
         {
             foreach ((int statusCode, int count) in bucket.StatusCounts)
             {
-                statusCounts[statusCode] = statusCounts.GetValueOrDefault(statusCode) + count;
+                aggregateStatusCounts[statusCode] = aggregateStatusCounts.GetValueOrDefault(statusCode) + count;
             }
         }
 
-        Dictionary<DateTime, MetricsBucketSnapshot> bucketMap = buckets.ToDictionary(bucket => bucket.Start);
-        List<TimePoint> requestsOverTime = windowRequests == 0
+        bool hasMetrics = snapshot.MinuteBuckets.Count > 0 || snapshot.SecondBuckets.Count > 0;
+        Dictionary<DateTime, int> secondBucketMap = recentSecondBuckets.ToDictionary(bucket => bucket.Key, bucket => bucket.Value);
+        List<TimePoint> requestsOverTime = !hasMetrics
             ? []
-            : Enumerable.Range(0, ChartWindowMinutes)
-                .Select(offset => minuteCutoff.AddMinutes(offset))
-                .Select(minute => new TimePoint
+            : Enumerable.Range(0, RequestChartWindowSeconds)
+                .Select(offset => requestChartCutoff.AddSeconds(offset))
+                .Select(second => new TimePoint
                 {
-                    Time = minute.ToString("HH:mm"),
-                    Value = bucketMap.GetValueOrDefault(minute)?.Count ?? 0
+                    Time = second.ToString("HH:mm:ss"),
+                    Value = secondBucketMap.GetValueOrDefault(second)
                 })
                 .ToList();
 
+        IReadOnlyDictionary<int, int> statusCounts = retainedStatusCounts ?? aggregateStatusCounts;
         List<TimePoint> responseTimeOverTime = buckets
             .Where(bucket => bucket.Count > 0)
             .Select(bucket => new TimePoint { Time = bucket.Start.ToString("HH:mm"), Value = bucket.DurationSumMs / (double)bucket.Count })
@@ -80,6 +89,7 @@ public class MetricsService
             ResponseTimeOverTime = responseTimeOverTime,
             StatusDistribution = statusDistribution,
             TotalRequests = retainedRequestCount,
+            StatusRequestCount = statusCounts.Values.Sum(),
             WindowRequests = windowRequests,
             LostAuditEntries = lostAuditEntries,
             RequestsPerMin = requestsPerMin,

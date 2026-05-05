@@ -12,14 +12,14 @@ builder.Services.AddVakthundUi(builder.Configuration);
 
 WebApplication app = builder.Build();
 
-app.Services.GetRequiredService<AuditHubConnection>().Start();
-
 UiOptions uiOptions = app.Services.GetRequiredService<IOptions<UiOptions>>().Value;
 if (uiOptions.StorageMode == StorageMode.Disk)
 {
     IAuditStore auditStore = app.Services.GetRequiredKeyedService<IAuditStore>(StorageMode.Disk);
-    app.Services.GetRequiredService<MetricsStore>().AddRange(auditStore.Snapshot());
+    app.Services.GetRequiredService<MetricsStore>().InitializeFromDisk(auditStore.Snapshot());
 }
+
+app.Services.GetRequiredService<AuditHubConnection>().Start();
 
 app.UseVakthundUI();
 

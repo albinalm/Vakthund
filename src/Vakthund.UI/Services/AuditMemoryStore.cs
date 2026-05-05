@@ -32,6 +32,23 @@ public class AuditMemoryStore(IOptions<UiOptions> options) : IAuditStore
         }
     }
 
+    public int Delete(IEnumerable<Guid> ids)
+    {
+        lock (_lock)
+        {
+            int deleted = 0;
+            foreach (Guid id in ids.Distinct())
+            {
+                if (_entries.Remove(id))
+                {
+                    deleted++;
+                }
+            }
+
+            return deleted;
+        }
+    }
+
     public AuditEntry? Get(Guid id)
     {
         lock (_lock)
@@ -53,6 +70,18 @@ public class AuditMemoryStore(IOptions<UiOptions> options) : IAuditStore
         {
             lock (_lock)
                 return _entries.Count;
+        }
+    }
+
+    public IReadOnlyDictionary<int, int> StatusCounts
+    {
+        get
+        {
+            lock (_lock)
+                return _entries.Values
+                    .Where(entry => entry.StatusCode.HasValue)
+                    .GroupBy(entry => entry.StatusCode!.Value)
+                    .ToDictionary(group => group.Key, group => group.Count());
         }
     }
 

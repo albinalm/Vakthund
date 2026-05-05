@@ -36,7 +36,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                 Directory.CreateDirectory(directory);
             }
 
-            _connectionString = new SqliteConnectionStringBuilder { DataSource = dbPath }.ToString();
+            _connectionString = new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false }.ToString();
             return _connectionString;
         }
     }
@@ -70,6 +70,40 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
             Trim(connection, transaction);
 
             transaction.Commit();
+        }
+    }
+
+    public int Delete(IEnumerable<Guid> ids)
+    {
+        string[] idsToDelete = ids
+            .Distinct()
+            .Select(id => id.ToString())
+            .ToArray();
+
+        if (idsToDelete.Length == 0)
+        {
+            return 0;
+        }
+
+        lock (_lock)
+        {
+            using SqliteConnection connection = OpenConnection();
+            using SqliteTransaction transaction = connection.BeginTransaction();
+            int deleted = 0;
+
+            using SqliteCommand command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM AuditEntries WHERE Id = $id;";
+            SqliteParameter idParameter = command.Parameters.Add("$id", SqliteType.Text);
+
+            foreach (string id in idsToDelete)
+            {
+                idParameter.Value = id;
+                deleted += command.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+            return deleted;
         }
     }
 
@@ -132,6 +166,33 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                       """;
 
                 return Convert.ToInt32(command.ExecuteScalar());
+            }
+        }
+    }
+
+    public IReadOnlyDictionary<int, int> StatusCounts
+    {
+        get
+        {
+            lock (_lock)
+            {
+                using SqliteConnection connection = OpenConnection();
+                using SqliteCommand command = connection.CreateCommand();
+                command.CommandText = """
+                                      SELECT StatusCode, COUNT(*)
+                                      FROM AuditEntries
+                                      WHERE StatusCode IS NOT NULL
+                                      GROUP BY StatusCode;
+                                      """;
+
+                Dictionary<int, int> statusCounts = [];
+                using SqliteDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    statusCounts[reader.GetInt32(0)] = Convert.ToInt32(reader.GetInt64(1));
+                }
+
+                return statusCounts;
             }
         }
     }

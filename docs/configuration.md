@@ -221,7 +221,7 @@ environment:
   MAX_AUDIT_ENTRIES: "0"
 ```
 
-`MAX_AUDIT_ENTRIES=0` disables the UI's count cap so retention is the sole eviction policy. Eviction runs on the next incoming request after an entry ages out.
+`MAX_AUDIT_ENTRIES=0` disables the UI's request count cap so retention is the sole eviction policy for captured request detail. Eviction runs on the next incoming request after an entry ages out.
 
 For truly cap-free capture, also set `MAX_QUEUED_ENTRIES=0` on the proxy. The proxy drops the oldest queued entries when its buffer fills up, so entries can be lost before they ever reach the UI regardless of storage settings.
 
@@ -233,7 +233,9 @@ Supported suffixes:
 | `h` | hours |
 | `d` | days |
 
-Retention and the count cap are independent. Both apply — whichever removes an entry first wins.
+Retention and the count cap are independent for request detail. Both apply — whichever removes an entry first wins.
+
+Dashboard aggregate metrics are bounded by time, not by `MAX_AUDIT_ENTRIES`. When `RETENTION` is set, disk-backed metric buckets use the same window. When `RETENTION` is empty, metric buckets keep the dashboard's rolling history window instead of growing forever.
 
 ### What Persists
 
@@ -241,9 +243,11 @@ In disk mode the UI stores:
 
 - All captured requests and their full detail (headers, bodies, status codes, timings).
 - The matched route configuration at the time of capture. Auth analysis in request detail remains accurate even after routes are changed or removed.
-- Dashboard metrics are rebuilt from stored requests on startup, so graphs reload with historical data.
+- Dashboard aggregate metric buckets, so timing, rate, error, and audit-loss history survives UI restarts even when request rows have been manually deleted.
 
-Aggregated metrics (request counts, response times, status distributions) are kept for at least one hour or for the full retention window if retention is longer. Raw request detail is subject to both the count cap and retention.
+Stored request count and status-code distribution are calculated from the current request rows. Manual deletion updates those request-row statistics immediately.
+
+Aggregate metrics such as average response time, average target time, request rate history, error rate, and audit loss are stored separately from request rows. Manual deletion does not remove their historical contribution, but `RETENTION` still trims old aggregate metric buckets. Raw request detail is subject to both the count cap and retention.
 
 ### Memory Mode
 

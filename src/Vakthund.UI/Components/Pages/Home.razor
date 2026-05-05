@@ -60,14 +60,14 @@
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-4 xl:col-span-2">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-gray-300">Requests over time</h2>
-                <span class="text-xs text-gray-500">Last 10 min</span>
+                <span class="text-xs text-gray-500">Last 60 sec</span>
             </div>
             @if (_metrics.RequestsOverTime.Count > 0)
             {
                 <RadzenChart Style="height: 240px">
                     <RadzenAreaSeries Data="@_metrics.RequestsOverTime" CategoryProperty="Time" ValueProperty="Value"
                                       Title="Requests" Smooth="true" />
-                    <RadzenCategoryAxis />
+                    <RadzenCategoryAxis Formatter="@FormatRequestTimeAxis" />
                     <RadzenValueAxis>
                         <RadzenGridLines Visible="true" />
                     </RadzenValueAxis>
@@ -88,8 +88,8 @@
                     <RadzenDonutSeries Data="@_metrics.StatusDistribution" CategoryProperty="Label" ValueProperty="Count">
                         <TitleTemplate>
                             <div style="text-align:center">
-                                <div style="font-size:1.25rem;font-weight:700;color:#f0f0f0">@_metrics.WindowRequests.ToString("N0")</div>
-                                <div style="font-size:0.75rem;color:#6b6b6b">last hour</div>
+                                <div style="font-size:1.25rem;font-weight:700;color:#f0f0f0">@_metrics.StatusRequestCount.ToString("N0")</div>
+                                <div style="font-size:0.75rem;color:#6b6b6b">stored</div>
                             </div>
                         </TitleTemplate>
                     </RadzenDonutSeries>

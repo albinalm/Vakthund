@@ -39,10 +39,39 @@ public class AuditMemoryStoreTests
         Assert.Equal("/after", stored.Path);
     }
 
+    [Fact]
+    public void Delete_RemovesSelectedEntries()
+    {
+        var store = new AuditMemoryStore(Options.Create(new UiOptions { MaxStoredAuditEntries = 10 }));
+        AuditEntry keep = Entry();
+        AuditEntry remove = Entry();
+        store.AddRange([keep, remove]);
+
+        int deleted = store.Delete([remove.Id, Guid.NewGuid()]);
+
+        Assert.Equal(1, deleted);
+        Assert.NotNull(store.Get(keep.Id));
+        Assert.Null(store.Get(remove.Id));
+    }
+
+    [Fact]
+    public void StatusCounts_GroupsStoredStatusCodes()
+    {
+        var store = new AuditMemoryStore(Options.Create(new UiOptions { MaxStoredAuditEntries = 10 }));
+        store.AddRange([Entry(statusCode: 200), Entry(statusCode: 200), Entry(statusCode: 500), Entry(statusCode: null)]);
+
+        IReadOnlyDictionary<int, int> statusCounts = store.StatusCounts;
+
+        Assert.Equal(2, statusCounts[200]);
+        Assert.Equal(1, statusCounts[500]);
+        Assert.False(statusCounts.ContainsKey(0));
+    }
+
     private static AuditEntry Entry(
         Guid? id = null,
         DateTimeOffset? timestamp = null,
-        string path = "/requests") =>
+        string path = "/requests",
+        int? statusCode = 200) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -50,6 +79,7 @@ public class AuditMemoryStoreTests
             Scheme = "https",
             Host = "example.test",
             Path = path,
-            Method = "GET"
+            Method = "GET",
+            StatusCode = statusCode
         };
 }

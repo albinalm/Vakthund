@@ -13,6 +13,8 @@ public class AuditDiskStoreTests : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearAllPools();
+
         if (File.Exists(_dbPath))
         {
             File.Delete(_dbPath);
@@ -152,6 +154,34 @@ public class AuditDiskStoreTests : IDisposable
     }
 
     [Fact]
+    public void Delete_RemovesSelectedEntries()
+    {
+        AuditDiskStore store = Store();
+        AuditEntry keep = Entry();
+        AuditEntry remove = Entry();
+        store.AddRange([keep, remove]);
+
+        int deleted = store.Delete([remove.Id, Guid.NewGuid()]);
+
+        Assert.Equal(1, deleted);
+        Assert.NotNull(store.Get(keep.Id));
+        Assert.Null(store.Get(remove.Id));
+    }
+
+    [Fact]
+    public void StatusCounts_GroupsStoredStatusCodes()
+    {
+        AuditDiskStore store = Store();
+        store.AddRange([Entry(statusCode: 200), Entry(statusCode: 200), Entry(statusCode: 500), Entry(statusCode: null)]);
+
+        IReadOnlyDictionary<int, int> statusCounts = store.StatusCounts;
+
+        Assert.Equal(2, statusCounts[200]);
+        Assert.Equal(1, statusCounts[500]);
+        Assert.False(statusCounts.ContainsKey(0));
+    }
+
+    [Fact]
     public void Latest_ReturnsMostRecentEntry()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -247,7 +277,8 @@ public class AuditDiskStoreTests : IDisposable
     private static AuditEntry Entry(
         DateTimeOffset? timestamp = null,
         string path = "/api",
-        Guid? id = null) =>
+        Guid? id = null,
+        int? statusCode = null) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -255,6 +286,7 @@ public class AuditDiskStoreTests : IDisposable
             Scheme = "https",
             Host = null,
             Path = path,
-            Method = "GET"
+            Method = "GET",
+            StatusCode = statusCode
         };
 }

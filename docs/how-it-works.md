@@ -89,9 +89,11 @@ Vakthund uses two storage layers:
 
 - The proxy keeps a bounded in-memory queue controlled by `MaxQueuedEntries`.
 - The UI keeps captured requests in memory by default, bounded by `MaxStoredAuditEntries`.
-- With `STORAGE_MODE=Disk`, the UI writes captured requests to SQLite at `StoragePath`.
+- With `STORAGE_MODE=Disk`, the UI writes captured requests and aggregate dashboard metric buckets to SQLite at `StoragePath`.
 - Retention can be time-based with `RETENTION` and count-based with `MAX_AUDIT_ENTRIES`.
 
-Restarting the proxy clears the proxy queue. Restarting the UI clears captured data only in memory mode; disk mode reloads the saved requests and rebuilds dashboard metrics from them.
+Restarting the proxy clears the proxy queue. Restarting the UI clears captured data only in memory mode; disk mode reloads saved requests and saved aggregate metric buckets.
+
+Manual request deletion removes inspectable request rows only. Stored request count and status-code distribution update from the remaining rows. Aggregate timing, rate, error, and audit-loss metrics keep their historical contribution until the retention window trims the metric buckets.
 
 Memory mode keeps local development simple and avoids creating a permanent copy of sensitive traffic by default. Disk mode is intended for longer sessions, server or staging use, and cases where captured traffic must survive UI restarts.

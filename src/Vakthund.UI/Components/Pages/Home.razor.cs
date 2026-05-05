@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
+using System.Globalization;
 using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
@@ -78,7 +79,16 @@ public partial class Home : IDisposable
     }
 
     private DashboardMetrics ComputeMetrics() =>
-        MetricsService.Compute(MetricsStore.Snapshot(), AuditStore.Count, AuditStore.Latest());
+        MetricsService.Compute(MetricsStore.Snapshot(), AuditStore.Count, AuditStore.Latest(), AuditStore.StatusCounts);
+
+    private static string FormatRequestTimeAxis(object value)
+    {
+        string label = value.ToString() ?? "";
+        return DateTime.TryParseExact(label, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime time)
+               && time.Second % 10 == 0
+            ? label
+            : "";
+    }
 
     private async Task SetTitle(string title) =>
         await JsRuntime.InvokeVoidAsync("setDocumentTitle", title);

@@ -8,6 +8,7 @@ public record DashboardMetrics
     public required IReadOnlyList<TimePoint> ResponseTimeOverTime { get; init; }
     public required IReadOnlyList<StatusGroup> StatusDistribution { get; init; }
     public required int TotalRequests { get; init; }
+    public required int StatusRequestCount { get; init; }
     public required int WindowRequests { get; init; }
     public required int LostAuditEntries { get; init; }
     public required int RequestsPerMin { get; init; }

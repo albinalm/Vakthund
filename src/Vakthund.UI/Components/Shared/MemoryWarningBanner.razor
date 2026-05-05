@@ -1,13 +1,22 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using Microsoft.Extensions.Options
+@using Vakthund.Shared.Models
+@using Vakthund.UI.Enums
 @using Vakthund.UI.Options
+@using Vakthund.UI.Services
 @inject IOptions<UiOptions> Options
+@inject ProxyConfigService ProxyConfigService
 
-@if (_visible && Options.Value.MaxStoredAuditEntries == 0)
+@if (_visible && _warnings.Count > 0)
 {
     <div class="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-amber-600 bg-gray-900 px-4 py-3 text-sm text-amber-400 shadow-xl">
         <span class="material-symbols-outlined text-base text-amber-500">warning</span>
-        <span><code class="font-mono text-amber-300">UI:MaxAuditEntries: 0</code> - request storage is uncapped and will grow without bound, causing memory leaks.</span>
+        <div class="space-y-1">
+            @foreach (string warning in _warnings)
+            {
+                <div>@warning</div>
+            }
+        </div>
         <button @onclick="Dismiss" class="ml-1 text-gray-500 transition-colors hover:text-gray-200">
             <span class="material-symbols-outlined text-base">close</span>
         </button>
@@ -15,7 +24,47 @@
 }
 
 @code {
+    private static readonly TimeSpan HighDiskRetentionThreshold = TimeSpan.FromDays(30);
+
     private bool _visible = true;
+    private readonly List<string> _warnings = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        UiOptions options = Options.Value;
+
+        if (options.StorageMode == StorageMode.Memory)
+        {
+            if (options.MaxStoredAuditEntries == 0)
+            {
+                _warnings.Add("UI request storage is uncapped in memory mode and will grow until the process restarts.");
+            }
+
+            ProxyConfigLoadResult result = await ProxyConfigService.GetAsync();
+            ProxyConfig? config = result.Config;
+            if (config?.MaxQueuedEntries == 0)
+            {
+                _warnings.Add("Proxy audit queueing is uncapped in memory mode and can grow without bound under sustained traffic.");
+            }
+
+            return;
+        }
+
+        TimeSpan? retention = options.RetentionPeriod;
+        if (retention.HasValue && retention.Value >= HighDiskRetentionThreshold)
+        {
+            _warnings.Add($"Disk retention is set to {FormatRetention(retention.Value)}, which can create a very large audit database.");
+        }
+        else if (!retention.HasValue && options.MaxStoredAuditEntries == 0)
+        {
+            _warnings.Add("Disk storage has no retention window and no count cap, so the audit database can grow without bound.");
+        }
+    }
 
     private void Dismiss() => _visible = false;
+
+    private static string FormatRetention(TimeSpan retention) =>
+        retention.TotalDays >= 1
+            ? $"{retention.TotalDays:N0} days"
+            : $"{retention.TotalHours:N0} hours";
 }

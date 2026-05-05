@@ -31,6 +31,7 @@ public partial class Requests : IDisposable
     private readonly IEnumerable<int> _pageSizeOptions = [10, 20, 30, 50];
     private RadzenDataGrid<AuditEntry> _grid = null!;
     private readonly List<AuditEntry> _entries = [];
+    private IList<AuditEntry> _selectedEntries = [];
     private string _searchText = "";
     private int _loadedCount;
     private bool _hasNewRequests;
@@ -46,6 +47,11 @@ public partial class Requests : IDisposable
     private IReadOnlyList<AuditEntry> VisibleEntries => string.IsNullOrWhiteSpace(_searchText)
         ? _entries
         : _entries.Where(MatchesSearch).ToArray();
+
+    private int SelectedCount => _selectedEntries.Count;
+
+    private bool AreAllVisibleSelected =>
+        VisibleEntries.Count > 0 && VisibleEntries.All(IsEntrySelected);
 
     protected override void OnInitialized()
     {
@@ -178,6 +184,81 @@ public partial class Requests : IDisposable
         ToastService.Show("Layout saved", $"View \"{_activeProfileName}\" updated.", ToastColor.Accent);
     }
 
+    private void SelectAllVisible()
+    {
+        Dictionary<Guid, AuditEntry> selectedById = _selectedEntries.ToDictionary(entry => entry.Id);
+        foreach (AuditEntry entry in VisibleEntries)
+        {
+            selectedById[entry.Id] = entry;
+        }
+
+        _selectedEntries = selectedById.Values.ToList();
+    }
+
+    private void ClearSelection() => _selectedEntries = [];
+
+    private bool IsEntrySelected(AuditEntry entry) =>
+        _selectedEntries.Any(selectedEntry => selectedEntry.Id == entry.Id);
+
+    private void ToggleSelectAllVisible(bool selected)
+    {
+        if (selected)
+        {
+            SelectAllVisible();
+            return;
+        }
+
+        HashSet<Guid> visibleIds = VisibleEntries.Select(entry => entry.Id).ToHashSet();
+        _selectedEntries = _selectedEntries.Where(entry => !visibleIds.Contains(entry.Id)).ToList();
+    }
+
+    private void ToggleEntrySelection(AuditEntry entry, bool selected)
+    {
+        List<AuditEntry> selectedEntries = _selectedEntries
+            .Where(selectedEntry => selectedEntry.Id != entry.Id)
+            .ToList();
+
+        if (selected)
+        {
+            selectedEntries.Add(entry);
+        }
+
+        _selectedEntries = selectedEntries;
+    }
+
+    private async Task TryDeleteSelectedAsync()
+    {
+        Guid[] selectedIds = _selectedEntries
+            .Select(entry => entry.Id)
+            .Distinct()
+            .ToArray();
+
+        if (selectedIds.Length == 0)
+        {
+            return;
+        }
+
+        bool? confirmed = await DialogService.Confirm(
+            $"Delete {selectedIds.Length:N0} selected request{(selectedIds.Length == 1 ? "" : "s")}? This cannot be undone.",
+            "Delete requests",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        int deleted = AuditStore.Delete(selectedIds);
+        ClearSelection();
+        LoadEntries();
+        await _grid.Reload();
+
+        ToastService.Show(
+            "Requests deleted",
+            $"{deleted:N0} request{(deleted == 1 ? "" : "s")} removed.",
+            ToastColor.Accent);
+    }
+
     private async Task PollLoopAsync(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
@@ -234,6 +315,18 @@ public partial class Requests : IDisposable
         _entries.AddRange(AuditStore.All.OrderByDescending(e => e.Timestamp));
         _loadedCount = AuditStore.Count;
         _hasNewRequests = false;
+        PruneSelectionToLoadedEntries();
+    }
+
+    private void PruneSelectionToLoadedEntries()
+    {
+        if (_selectedEntries.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<Guid> selectedIds = _selectedEntries.Select(entry => entry.Id).ToHashSet();
+        _selectedEntries = _entries.Where(entry => selectedIds.Contains(entry.Id)).ToList();
     }
 
     public void Dispose()

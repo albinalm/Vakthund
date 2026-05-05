@@ -18,7 +18,9 @@ The dashboard shows the current captured traffic set. In memory mode, that is th
 - Status code distribution.
 - Latest captured request.
 
-The dashboard updates as the UI receives audit entries from the proxy. In disk mode, historical metrics are rebuilt from stored requests when the UI starts.
+The dashboard updates as the UI receives audit entries from the proxy. In disk mode, historical aggregate metrics are loaded from SQLite when the UI starts.
+
+Deleting requests removes them from the requests table and updates stored request count and status-code distribution. Aggregate timing, request-rate, error-rate, and audit-loss metrics remain part of the dashboard history until the configured retention window trims them.
 
 ## Requests
 
