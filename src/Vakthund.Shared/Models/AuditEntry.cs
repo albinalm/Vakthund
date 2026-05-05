@@ -19,5 +19,7 @@ public class AuditEntry
     public string? Body { get; set; }
     public string? ResponseBody { get; set; }
     public int? StatusCode { get; set; }
+    public long? TargetDurationMs { get; set; }
     public long DurationMs { get; set; }
+    public DateTimeOffset CompletedAt => Timestamp.AddMilliseconds(DurationMs);
 }
