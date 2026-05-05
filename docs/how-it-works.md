@@ -4,7 +4,7 @@ Vakthund has two running services.
 
 The proxy receives client traffic, records request and response details, forwards the request to the configured target, then publishes an audit entry.
 
-The UI connects to the proxy management hub, stores audit entries in memory, and renders dashboards and request detail screens.
+The UI connects to the proxy management hub, stores audit entries in the configured audit store, and renders dashboards and request detail screens.
 
 ## Request Flow
 
@@ -50,7 +50,7 @@ Captured entries are written to a bounded in-memory queue. If the queue is full,
 
 `Vakthund.UI` is a Blazor Server app. It connects to the proxy SignalR hub specified by `HUB` or `Proxy:AuditHubUrl`.
 
-The UI keeps captured requests in memory for the current UI process. It provides:
+The UI keeps captured requests in memory by default. It can also use disk-backed SQLite storage when `STORAGE_MODE=Disk` is configured. It provides:
 
 - A dashboard with request count, rate, response timing, error rate, and status code distribution.
 - A searchable requests table.
@@ -85,10 +85,13 @@ For basic auth, it decodes the username and password from the captured header.
 
 ## Storage Model
 
-Vakthund does not write captured traffic to a database or file. Captured entries live in memory:
+Vakthund uses two storage layers:
 
-- The proxy queue is bounded by `MaxQueuedEntries`.
-- The UI request store is bounded by `MaxAuditEntries`.
-- Restarting either service clears its in-memory state.
+- The proxy keeps a bounded in-memory queue controlled by `MaxQueuedEntries`.
+- The UI keeps captured requests in memory by default, bounded by `MaxStoredAuditEntries`.
+- With `STORAGE_MODE=Disk`, the UI writes captured requests to SQLite at `StoragePath`.
+- Retention can be time-based with `RETENTION` and count-based with `MAX_AUDIT_ENTRIES`.
 
-This keeps local development simple and avoids creating a permanent copy of sensitive traffic by default.
+Restarting the proxy clears the proxy queue. Restarting the UI clears captured data only in memory mode; disk mode reloads the saved requests and rebuilds dashboard metrics from them.
+
+Memory mode keeps local development simple and avoids creating a permanent copy of sensitive traffic by default. Disk mode is intended for longer sessions, server or staging use, and cases where captured traffic must survive UI restarts.

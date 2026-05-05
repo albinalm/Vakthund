@@ -31,7 +31,7 @@ By default, captured traffic is kept in memory for the current run. Switch to di
 - [How Vakthund Works](docs/how-it-works.md)
 - [Configuration](docs/configuration.md)
 - [Using the UI](docs/using-the-ui.md)
-- [Development](docs/development.md)
+- [Development](docs/development.md), including local development suite setup
 
 ## Quick Start
 
@@ -73,7 +73,7 @@ For multiple upstreams or path-based routing, mount a routes file instead. See [
 - `Vakthund.Proxy`: reverse proxy, request capture middleware, management endpoints, and SignalR audit hub.
 - `Vakthund.UI`: Blazor Server frontend for dashboard, request list, request details, and configuration.
 - `Vakthund.Shared`: shared models used by both services.
-- `Vakthund.Tests`: unit tests for parsing, routing, metrics, and storage behavior.
+- `Vakthund.Tests`: unit tests plus the Docker/k6 smoke and load-test suite.
 
 ## License
 

@@ -8,7 +8,7 @@ http://localhost:8082
 
 ## Dashboard
 
-The dashboard shows the current in-memory traffic session:
+The dashboard shows the current captured traffic set. In memory mode, that is the current UI process session. In disk mode, it includes requests reloaded from the SQLite store:
 
 - Total requests.
 - Requests per minute.
@@ -18,7 +18,7 @@ The dashboard shows the current in-memory traffic session:
 - Status code distribution.
 - Latest captured request.
 
-The dashboard updates as the UI receives audit entries from the proxy.
+The dashboard updates as the UI receives audit entries from the proxy. In disk mode, historical metrics are rebuilt from stored requests when the UI starts.
 
 ## Requests
 
