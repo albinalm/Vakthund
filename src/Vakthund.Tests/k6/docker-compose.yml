@@ -6,6 +6,8 @@ services:
       - "18080:8080"
     environment:
       ASPNETCORE_URLS: http://+:8080
+      Logging__LogLevel__Default: Warning
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
 
   proxy:
     build:
@@ -19,6 +21,9 @@ services:
       MAX_BODY_BYTES: 262144
       MAX_RESPONSE_BODY_BYTES: 262144
       MAX_QUEUED_ENTRIES: 200000
+      Logging__LogLevel__Default: Warning
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+      Logging__LogLevel__Yarp.ReverseProxy: Warning
     volumes:
       - ./routes.yaml:/etc/vakthund/routes.yaml:ro
     depends_on:
@@ -55,7 +60,7 @@ services:
       MANAGEMENT_URL: http://proxy:8081
       UI_URL: http://ui:8080
       K6_VUS: ${K6_VUS:-200}
-      K6_DURATION: ${K6_DURATION:-2m}
+      K6_DURATION: ${K6_DURATION:-30s}
     volumes:
       - ./load.js:/scripts/load.js:ro
     depends_on:

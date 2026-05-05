@@ -28,6 +28,20 @@ Dummy API:         http://localhost:18080
 
 Open `http://localhost:18001` to confirm the proxy management port is alive. Open `http://localhost:18002` to watch the UI while k6 is running.
 
+k6 prints a timing summary when the run ends and writes the same data to:
+
+```text
+results/summary.json
+```
+
+The most useful values for comparison are:
+
+- `http_req_duration`: total k6-observed request duration.
+- `http_req_waiting`: time waiting for the first response byte.
+- `vakthund_fast_duration`: k6 duration for `/api/fast`.
+- `vakthund_data_duration`: k6 duration for `/api/data/{id}`.
+- `vakthund_echo_duration`: k6 duration for `/api/echo`.
+
 ## Tune The Load
 
 The defaults are intentionally heavy for a local machine:
@@ -35,6 +49,8 @@ The defaults are intentionally heavy for a local machine:
 ```bash
 K6_VUS=200 K6_DURATION=2m docker compose --profile load up --build --abort-on-container-exit --exit-code-from k6
 ```
+
+The Compose file raises proxy and dummy API logging to `Warning` during load tests. High-volume ASP.NET Core and YARP info logs can distort the test because Docker stdout can become a bottleneck under heavy traffic.
 
 Use lower values when you want a quick smoke test:
 
