@@ -74,10 +74,39 @@ jobs:
               }
             );
 
-            const passed = runs.some(run => run.head_sha === headSha && run.conclusion === 'success');
-            if (!passed) {
-              core.setFailed(`QA has not passed for ${headSha} on ${branch}. Push this commit to main and wait for QA to pass before running Release.`);
+            const passedQaShas = new Set(
+              runs
+                .filter(run => run.conclusion === 'success')
+                .map(run => run.head_sha)
+            );
+
+            let qaSha = headSha;
+            const readmeOnlyCommits = [];
+            for (let depth = 0; depth < 20; depth++) {
+              if (passedQaShas.has(qaSha)) {
+                if (qaSha !== headSha) {
+                  core.info(`Using QA from ${qaSha}; skipped README-only commit(s): ${readmeOnlyCommits.join(', ')}`);
+                }
+                return;
+              }
+
+              const commit = await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: qaSha
+              });
+              const files = commit.data.files ?? [];
+              const parents = commit.data.parents ?? [];
+              const readmeOnly = files.length > 0 && files.every(file => file.filename === 'README.md');
+              if (!readmeOnly || parents.length !== 1) {
+                break;
+              }
+
+              readmeOnlyCommits.push(qaSha);
+              qaSha = parents[0].sha;
             }
+
+            core.setFailed(`QA has not passed for ${headSha} on ${branch}. Push this commit to main and wait for QA to pass before running Release.`);
 
   publish:
     name: Publish images
@@ -123,3 +152,71 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ needs.require-qa.outputs.version }}
+
+  update-readme:
+    name: Update release badge
+    runs-on: ubuntu-latest
+    needs:
+      - require-qa
+      - publish
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Sync latest main
+        shell: bash
+        run: git pull --ff-only origin main
+
+      - name: Update README release badge
+        env:
+          VERSION: ${{ needs.require-qa.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          repository = os.environ["REPOSITORY"]
+          replacement = (
+              "  <!-- release-badge:start -->\n"
+              f'  <a href="https://github.com/{repository}/pkgs/container/vakthund-ui?tag={version}">'
+              f'<img src="https://img.shields.io/badge/release-{version}-fd9c1d" alt="Release {version}"></a>\n'
+              "  <!-- release-badge:end -->"
+          )
+
+          path = Path("README.md")
+          text = path.read_text(encoding="utf-8")
+          pattern = re.compile(r"  <!-- release-badge:start -->.*?  <!-- release-badge:end -->", re.DOTALL)
+          updated, count = pattern.subn(replacement, text, count=1)
+
+          if count != 1:
+              raise SystemExit("Could not find release badge marker in README.md")
+
+          path.write_text(updated, encoding="utf-8")
+          PY
+
+      - name: Commit README release badge
+        env:
+          VERSION: ${{ needs.require-qa.outputs.version }}
+        shell: bash
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "README release badge already points to ${VERSION}."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Update release badge to ${VERSION} [skip ci]"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
