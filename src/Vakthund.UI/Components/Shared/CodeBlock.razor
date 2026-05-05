@@ -1,4 +1,5 @@
 @inject IJSRuntime JS
+@implements IDisposable
 
 <pre class="overflow-x-auto rounded border border-gray-800 bg-gray-950 p-3 font-mono text-xs leading-relaxed"><code @ref="_codeRef" class="language-@_language">@_formatted</code></pre>
 
@@ -10,6 +11,7 @@
     private ElementReference _codeRef;
     private string _formatted = "";
     private string _language = "plaintext";
+    private readonly CancellationTokenSource _cts = new();
 
     protected override void OnParametersSet()
     {
@@ -44,13 +46,18 @@
         {
             try
             {
-                await JS.InvokeVoidAsync("hljs.highlightElement", _codeRef);
+                await JS.InvokeVoidAsync("hljs.highlightElement", _cts.Token, _codeRef);
             }
             catch
             {
-                // highlight.js unavailable (e.g. offline, CDN blocked)
             }
         }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
     }
 
     private static (string Formatted, string Language) FormatAndDetect(string raw, string? hintedLanguage)
