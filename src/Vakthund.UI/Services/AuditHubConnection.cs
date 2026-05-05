@@ -8,15 +8,17 @@ public class AuditHubConnection : IAsyncDisposable
 {
     private readonly HubConnection _connection;
     private readonly AuditStore _store;
+    private readonly MetricsStore _metricsStore;
 
     public event Action<IReadOnlyList<AuditEntry>>? Requests;
     public event Action<HubConnectionState>? StateChanged;
 
     public HubConnectionState State => _connection.State;
 
-    public AuditHubConnection(IConfiguration configuration, AuditStore store)
+    public AuditHubConnection(IConfiguration configuration, AuditStore store, MetricsStore metricsStore)
     {
         _store = store;
+        _metricsStore = metricsStore;
         string url = configuration["Proxy:AuditHubUrl"]!;
         _connection = new HubConnectionBuilder()
             .WithUrl(url)
@@ -27,6 +29,7 @@ public class AuditHubConnection : IAsyncDisposable
         _connection.Reconnecting += _ => { StateChanged?.Invoke(_connection.State); return Task.CompletedTask; };
         _connection.Reconnected += _ => { StateChanged?.Invoke(_connection.State); return Task.CompletedTask; };
 
+        _connection.On<string>("OnAuditBatch", HandleAuditBatch);
         _connection.On<string>("OnRequests", HandleRequests);
         _connection.On<string>("OnRequest", json =>
         {
@@ -74,9 +77,29 @@ public class AuditHubConnection : IAsyncDisposable
         HandleEntries(entries);
     }
 
+    private void HandleAuditBatch(string json)
+    {
+        AuditBatch? batch = JsonSerializer.Deserialize<AuditBatch>(json);
+        if (batch is null)
+        {
+            return;
+        }
+
+        if (batch.Entries.Count > 0)
+        {
+            HandleEntries(batch.Entries);
+        }
+
+        if (batch.Loss is not null)
+        {
+            _metricsStore.AddLoss(batch.Loss);
+        }
+    }
+
     private void HandleEntries(IReadOnlyList<AuditEntry> entries)
     {
         _store.AddRange(entries);
+        _metricsStore.AddRange(entries);
         Requests?.Invoke(entries);
     }
 }
