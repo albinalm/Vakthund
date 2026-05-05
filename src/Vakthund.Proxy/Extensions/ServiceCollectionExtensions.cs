@@ -4,6 +4,7 @@ using Vakthund.Proxy.Options;
 using Vakthund.Proxy.Services;
 using Vakthund.Proxy.Workers;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ReverseProxy.Transforms;
 
 namespace Vakthund.Proxy.Extensions;
 
@@ -18,21 +19,34 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProxyActivityFeed>();
         services.AddSingleton<RequestInterceptor>();
         services.AddHostedService<AuditBroadcastWorker>();
-        services.AddReverseProxy().LoadFromMemory(
-            routes: routes.Select((r, i) => new RouteConfig
-            {
-                RouteId = $"route-{i}",
-                ClusterId = $"cluster-{i}",
-                Match = new RouteMatch { Path = ToYarpPath(r.Path) }
-            }).ToList(),
-            clusters: routes.Select((r, i) => new ClusterConfig
-            {
-                ClusterId = $"cluster-{i}",
-                Destinations = new Dictionary<string, DestinationConfig>
+        services.AddReverseProxy()
+            .LoadFromMemory(
+                routes: routes.Select((r, i) => new RouteConfig
                 {
-                    ["default"] = new() { Address = r.Target }
-                }
-            }).ToList());
+                    RouteId = $"route-{i}",
+                    ClusterId = $"cluster-{i}",
+                    Match = new RouteMatch { Path = ToYarpPath(r.Path) }
+                }).ToList(),
+                clusters: routes.Select((r, i) => new ClusterConfig
+                {
+                    ClusterId = $"cluster-{i}",
+                    Destinations = new Dictionary<string, DestinationConfig>
+                    {
+                        ["default"] = new() { Address = r.Target }
+                    }
+                }).ToList())
+            .AddTransforms(context =>
+            {
+                context.AddResponseTransform(transformContext =>
+                {
+                    int? statusCode = transformContext.ProxyResponse is null
+                        ? null
+                        : (int)transformContext.ProxyResponse.StatusCode;
+
+                    RequestInterceptor.CaptureTargetResponse(transformContext.HttpContext, statusCode);
+                    return default;
+                });
+            });
 
         return services;
     }

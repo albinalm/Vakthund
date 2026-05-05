@@ -10,6 +10,10 @@ namespace Vakthund.Proxy.Middlewares;
 
 public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed, IOptions<VakthundOptions> options) : IMiddleware
 {
+    public static readonly object AuditEntryItemKey = new();
+    public static readonly object ProxyStartTimestampItemKey = new();
+    private static readonly object ProxyResponseCapturedItemKey = new();
+
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         var opts = options.Value;
@@ -43,7 +47,10 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
             Uri = entry.Uri
         });
 
+        entry.Timestamp = DateTimeOffset.UtcNow;
         var sw = Stopwatch.StartNew();
+        context.Items[AuditEntryItemKey] = entry;
+        context.Items[ProxyStartTimestampItemKey] = Stopwatch.GetTimestamp();
 
         if (opts.MaxResponseBodyBytes > 0 && (context.Response.ContentLength is null || context.Response.ContentLength <= opts.MaxResponseBodyBytes))
         {
@@ -51,29 +58,32 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
             using var buffer = new MemoryStream();
             context.Response.Body = buffer;
 
-            await next.Invoke(context);
-
-            buffer.Position = 0;
-            if (buffer.Length <= opts.MaxResponseBodyBytes)
+            try
             {
-                entry.ResponseBody = await new StreamReader(buffer).ReadToEndAsync();
-                if (string.IsNullOrEmpty(entry.ResponseBody))
-                    entry.ResponseBody = null;
-            }
+                await next.Invoke(context);
 
-            buffer.Position = 0;
-            await buffer.CopyToAsync(originalBody);
-            context.Response.Body = originalBody;
+                buffer.Position = 0;
+                if (buffer.Length <= opts.MaxResponseBodyBytes)
+                {
+                    entry.ResponseBody = await new StreamReader(buffer).ReadToEndAsync();
+                    if (string.IsNullOrEmpty(entry.ResponseBody))
+                        entry.ResponseBody = null;
+                }
+
+                buffer.Position = 0;
+                await buffer.CopyToAsync(originalBody);
+                CaptureTotalResponse();
+            }
+            finally
+            {
+                context.Response.Body = originalBody;
+            }
         }
         else
         {
             await next.Invoke(context);
+            CaptureTotalResponse();
         }
-
-        sw.Stop();
-
-        entry.StatusCode = context.Response.StatusCode;
-        entry.DurationMs = sw.ElapsedMilliseconds;
 
         string? destination = context.Features.Get<IReverseProxyFeature>()?.ProxiedDestination?.Model.Config.Address;
         if (destination is not null)
@@ -91,5 +101,28 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
             Uri = entry.Uri,
             StatusCode = entry.StatusCode
         });
+
+        void CaptureTotalResponse()
+        {
+            sw.Stop();
+            entry.StatusCode = context.Response.StatusCode;
+            entry.DurationMs = sw.ElapsedMilliseconds;
+        }
+    }
+
+    public static void CaptureTargetResponse(HttpContext context, int? statusCode = null)
+    {
+        if (!context.Items.TryGetValue(AuditEntryItemKey, out object? entryObj) ||
+            entryObj is not AuditEntry entry ||
+            !context.Items.TryGetValue(ProxyStartTimestampItemKey, out object? startObj) ||
+            startObj is not long startTimestamp ||
+            context.Items.ContainsKey(ProxyResponseCapturedItemKey))
+        {
+            return;
+        }
+
+        context.Items[ProxyResponseCapturedItemKey] = true;
+        entry.StatusCode = statusCode ?? context.Response.StatusCode;
+        entry.TargetDurationMs = (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
     }
 }
