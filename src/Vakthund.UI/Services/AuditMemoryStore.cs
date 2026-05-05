@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
 using Vakthund.UI.Options;
+using Vakthund.UI.Services.Interfaces;
 
 namespace Vakthund.UI.Services;
 
-public class AuditStore(IOptions<UiOptions> options)
+public class AuditStore(IOptions<UiOptions> options) : IAuditStore
 {
     private readonly Dictionary<Guid, AuditEntry> _entries = [];
     private readonly Lock _lock = new();

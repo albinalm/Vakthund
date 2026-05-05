@@ -61,6 +61,8 @@ public class ProxyActivityFeed
         }
 
         foreach (Channel<ProxyActivity> subscriber in _subscribers.Values)
+        {
             subscriber.Writer.TryWrite(activity);
+        }
     }
 }

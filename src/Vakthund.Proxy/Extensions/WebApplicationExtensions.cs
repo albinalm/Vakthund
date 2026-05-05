@@ -18,7 +18,10 @@ public static class WebApplicationExtensions
 
         app.Urls.Clear();
         foreach (string url in proxyUrls)
+        {
             app.Urls.Add(url);
+        }
+
         app.Urls.Add(managementUrl);
 
         return app;
