@@ -1,0 +1,21 @@
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Microsoft.Extensions.Options
+@using Vakthund.UI.Options
+@inject IOptions<VakthundOptions> Options
+
+@if (_visible && Options.Value.MaxAuditEntries == 0)
+{
+    <div class="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-amber-600 bg-gray-900 px-4 py-3 text-sm text-amber-400 shadow-xl">
+        <span class="material-symbols-outlined text-base text-amber-500">warning</span>
+        <span><code class="font-mono text-amber-300">MaxAuditEntries: 0</code> - request storage is uncapped and will grow without bound, causing memory leaks.</span>
+        <button @onclick="Dismiss" class="ml-1 text-gray-500 transition-colors hover:text-gray-200">
+            <span class="material-symbols-outlined text-base">close</span>
+        </button>
+    </div>
+}
+
+@code {
+    private bool _visible = true;
+
+    private void Dismiss() => _visible = false;
+}

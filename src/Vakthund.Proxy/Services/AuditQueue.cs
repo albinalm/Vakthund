@@ -12,9 +12,13 @@ public class AuditQueue
     private readonly Lock _lock = new();
     private readonly int _capacity;
 
+    public bool IsUncapped { get; }
+
     public AuditQueue(IOptions<VakthundOptions> options)
     {
-        _capacity = Math.Max(1, options.Value.MaxQueuedEntries);
+        int configured = options.Value.MaxQueuedEntries;
+        IsUncapped = configured == 0;
+        _capacity = IsUncapped ? int.MaxValue : Math.Max(1, configured);
         _available = new SemaphoreSlim(0, _capacity);
     }
 

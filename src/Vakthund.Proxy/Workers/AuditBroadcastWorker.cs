@@ -16,6 +16,9 @@ public class AuditBroadcastWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (queue.IsUncapped)
+            logger.LogWarning("MaxQueuedEntries is 0 — the audit queue is uncapped and will grow without bound. This may cause memory exhaustion under sustained load.");
+
         while (!stoppingToken.IsCancellationRequested)
         {
             AuditBatch batch = await queue.ReadBatchAsync(MaxBatchSize, FlushInterval, stoppingToken);

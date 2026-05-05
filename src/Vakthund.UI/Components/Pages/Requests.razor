@@ -2,52 +2,53 @@
 @using Vakthund.Shared.Models
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<PageTitle>Requests — Vakthund</PageTitle>
-
 <div class="mx-auto max-w-7xl space-y-4 px-6 py-6">
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="font-display text-2xl font-semibold text-gray-100">Requests</h1>
-            <p class="mt-1 text-sm text-gray-500">@_visibleEntries.Count() of @_entries.Count captured requests</p>
-            <p class="mt-1 text-xs text-gray-600">
-                This page keeps up to the latest @MaxAuditEntries.ToString("N0") requests. Older requests are removed from the table when that limit is reached.
-            </p>
+            @if (MaxAuditEntries > 0)
+            {
+                <p class="mt-1 text-sm text-gray-500">@_visibleEntries.Count() of @_entries.Count captured requests</p>
+                <p class="mt-1 text-xs text-gray-600">
+                    This page keeps up to the latest @MaxAuditEntries.ToString("N0") requests. Older requests are removed
+                    from the table when that limit is reached.
+                </p>
+            }
         </div>
         <div class="flex w-full flex-wrap items-center gap-3 md:w-auto">
             <input @bind="_searchText"
                    @bind:event="oninput"
                    class="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-600 focus:border-amber-500 md:w-96"
-                   placeholder="Filter by method, status, host, path, or query" />
+                   placeholder="Filter by method, status, host, path, or query"/>
             <button @onclick="RefreshAsync"
-                    class="rounded border border-gray-700 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-500">
+                    class="flex items-center gap-1.5 rounded border border-amber-600 px-3 py-2 text-sm font-medium text-amber-400 transition-colors hover:border-amber-400 hover:text-amber-300">
+                <span class="material-symbols-outlined text-base">refresh</span>
                 Refresh
             </button>
         </div>
     </header>
 
     <div class="overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
-        <RadzenDataGrid @ref="_grid" Data="@_visibleEntries" TItem="AuditEntry" AllowSorting="true" AllowPaging="true" PageSize="10" PageSizeOptions="_pageSizeOptions"
-                        EmptyText="No matching requests." AllowColumnResize="true" RowClick="OnRowClick" PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true">
+        <RadzenDataGrid @ref="_grid" Data="@_visibleEntries" TItem="AuditEntry" AllowSorting="true" AllowPaging="true"
+                        PageSize="10" PageSizeOptions="_pageSizeOptions"
+                        EmptyText="No matching requests." AllowColumnResize="true" RowClick="OnRowClick"
+                        PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true">
             <Columns>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="Timestamp" Title="Time" Width="150px">
                     <Template Context="entry">
-                        <span class="font-mono text-xs text-gray-400">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                        <span
+                            class="font-mono text-xs text-gray-400">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
                     </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="Method" Title="Method" Width="110px">
                     <Template Context="entry">
-                        <div class="flex flex-col gap-1">
-                            <span class="w-fit rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(entry.Method)">@entry.Method</span>
-                            @if (HttpStyle.ContentTypeShortName(entry.ContentType) is { } ct)
-                            {
-                                <span class="font-mono text-xs text-gray-500">@ct</span>
-                            }
-                        </div>
+                        <span class="w-fit rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(entry.Method)">@entry.Method</span>
                     </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="StatusCode" Title="Status" Width="95px">
                     <Template Context="entry">
-                        <span class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(entry.StatusCode)">@entry.StatusCode</span>
+                        <span
+                            class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(entry.StatusCode)">@entry.StatusCode</span>
                     </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="Host" Title="Host" Width="180px">
@@ -73,7 +74,8 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="TargetDurationMs" Title="Target" Width="110px">
                     <Template Context="entry">
-                        <span class="font-mono text-sm text-gray-300">@(entry.TargetDurationMs.HasValue ? $"{entry.TargetDurationMs} ms" : "-")</span>
+                        <span
+                            class="font-mono text-sm text-gray-300">@(entry.TargetDurationMs.HasValue ? $"{entry.TargetDurationMs} ms" : "-")</span>
                     </Template>
                 </RadzenDataGridColumn>
             </Columns>

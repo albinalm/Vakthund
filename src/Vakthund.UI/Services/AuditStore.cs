@@ -67,7 +67,7 @@ public class AuditStore(IOptions<VakthundOptions> options)
     private void Trim()
     {
         int max = options.Value.MaxAuditEntries;
-        if (_entries.Count <= max)
+        if (max == 0 || _entries.Count <= max)
         {
             return;
         }
