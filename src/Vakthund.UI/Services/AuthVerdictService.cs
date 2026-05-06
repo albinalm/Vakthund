@@ -162,7 +162,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
             Severity = AuthVerdictSeverity.Warning,
             Title = "JWE payload is encrypted.",
             Detail = "Vakthund can read the protected header, but no decrypted payload is available.",
-            Hints = ["Configure route auth.jwe or the global JWE_KEY_TYPE and JWE_KEY fallback to inspect encrypted token claims."]
+            Hints = ["Configure route auth.jwe in routes.yaml to inspect encrypted token claims."]
         };
     }
 

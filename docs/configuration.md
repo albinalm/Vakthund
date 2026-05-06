@@ -34,8 +34,6 @@ These settings belong to `Vakthund.UI`.
 | `STORAGE_MODE` | `UI:StorageMode` | `Memory` | `Memory` or `Disk`. Use `Disk` to persist requests across restarts. |
 | `STORAGE_PATH` | `UI:StoragePath` | `/app/data/audit.db` in Docker | Path to the SQLite database file. Relative paths are resolved from the app directory. |
 | `RETENTION` | `UI:Retention` | empty | Maximum age of retained requests. Accepts `m`, `h`, or `d` suffixes — for example `30m`, `24h`, `10d`. Entries older than this are discarded on the next incoming request. |
-| `JWE_KEY_TYPE` | `UI:JweFallback:KeyType` | empty | Global fallback JWE key type. Valid values are `Rsa`, `Ec`, `Symmetric`, and `Password`. Prefer route `auth.jwe` for route-specific keys. |
-| `JWE_KEY` | `UI:JweFallback:Key` | empty | Global fallback JWE decryption key. Prefer route `auth.jwe` for route-specific keys. |
 
 ## Routes File Format
 
@@ -141,9 +139,11 @@ Signing keys are resolved in this order:
 
 The auth verdict labels the signing key source so inferred metadata is visible in the UI. Proxy enforcement does not infer metadata from the token issuer; `enforced: true` routes must declare their signing key source through route config.
 
-`auth.jwe` is optional route-level JWE decryption config. It is used only to decrypt encrypted bearer tokens so Vakthund can inspect the claims in the UI. It is not used for proxy enforcement or signature validation; signatures are still checked with `jwksUrl` or OIDC metadata.
+`auth.jwe` is optional route-level JWE decryption config. It lets the UI decrypt encrypted bearer tokens for the matched route so the claims can be inspected and compared with the route auth contract.
 
-Supported JWE key types are `Rsa`, `Ec`, `Symmetric`, and `Password`. `Rsa` and `Ec` expect PEM private keys, `Symmetric` expects base64-encoded key bytes, and `Password` expects a plain password string. Route-level `auth.jwe` takes precedence over the global `UI:JweFallback`.
+`auth.enforced` decides whether the route auth contract is only inspection context or is also enforced by the proxy. JWE decryption is still for inspection of encrypted tokens; proxy enforcement validates bearer JWT signatures with `jwksUrl`, `openIdConfigurationUrl`, or issuer-based OIDC metadata.
+
+Supported JWE key types are `Rsa`, `Ec`, `Symmetric`, and `Password`. `Rsa` and `Ec` expect PEM private keys, `Symmetric` expects base64-encoded key bytes, and `Password` expects a plain password string.
 
 ## Single Target Versus Routes File
 
@@ -167,35 +167,48 @@ If a routes file exists and contains routes, it takes priority over `TARGET`.
 
 ## JWE Decryption
 
-Vakthund can inspect encrypted JWE payloads when the matched route has `auth.jwe` configured, or when the UI has a global fallback key.
-
-Examples:
+JWE decryption is configured in `routes.yaml` on the route that receives the encrypted bearer token. This keeps decryption keys scoped to the route that needs them.
 
 ```yaml
-environment:
-  JWE_KEY_TYPE: "Symmetric"
-  JWE_KEY: "base64-encoded-key-bytes"
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      enforced: false
+      issuer: https://login.example.com
+      audience: orders-api
+      jwe:
+        keyType: Symmetric
+        key: base64-encoded-key-bytes
 ```
 
 ```yaml
-environment:
-  JWE_KEY_TYPE: "Rsa"
-  JWE_KEY: |
-    -----BEGIN PRIVATE KEY-----
-    ...
-    -----END PRIVATE KEY-----
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      enforced: true
+      issuer: https://login.example.com
+      audience: orders-api
+      jwksUrl: https://login.example.com/.well-known/jwks.json
+      jwe:
+        keyType: Rsa
+        key: |
+          -----BEGIN PRIVATE KEY-----
+          ...
+          -----END PRIVATE KEY-----
 ```
 
-Supported key types:
+Use `enforced: false` when the route auth block should only power UI inspection and auth verdicts. Use `enforced: true` when the proxy should reject unauthenticated or unauthorized requests before forwarding.
+
+Supported `auth.jwe.keyType` values:
 
 - `Rsa`: PEM RSA private key.
 - `Ec`: PEM EC private key.
 - `Symmetric`: base64-encoded symmetric key bytes.
 - `Password`: plain password string.
 
-Only configure JWE keys in trusted local environments. The UI process can use the key to decrypt captured tokens.
-
-For local development, prefer putting route-specific JWE keys in `src/Vakthund.Proxy/routes.local.yaml`. That file is ignored by Git.
+Only configure JWE keys in trusted local environments. The UI process can use route `auth.jwe` to decrypt captured tokens for display. For local development, prefer putting route-specific JWE keys in `src/Vakthund.Proxy/routes.local.yaml`. That file is ignored by Git.
 
 ## Capture Limits
 

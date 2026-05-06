@@ -12,11 +12,6 @@ ENV STORAGE_MODE=""
 ENV STORAGE_PATH=""
 # RETENTION: how long to keep requests, e.g. 30m, 24h, 10d (default: no time limit)
 ENV RETENTION=""
-# JWE_KEY_TYPE: global fallback key type for JWE decryption — Rsa | Ec | Symmetric | Password
-ENV JWE_KEY_TYPE=""
-# JWE_KEY: global fallback decryption key — PEM string (Rsa/Ec), base64-encoded bytes (Symmetric), or plain password (Password)
-ENV JWE_KEY=""
-
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
