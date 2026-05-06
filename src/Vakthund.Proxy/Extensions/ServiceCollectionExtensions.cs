@@ -3,7 +3,6 @@ using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Options;
 using Vakthund.Proxy.Services;
 using Vakthund.Proxy.Workers;
-using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Transforms;
 
 namespace Vakthund.Proxy.Extensions;
@@ -19,22 +18,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProxyActivityFeed>();
         services.AddSingleton<RequestInterceptor>();
         services.AddHostedService<AuditBroadcastWorker>();
+        services.AddRouteAuthentication(routes);
         services.AddReverseProxy()
             .LoadFromMemory(
-                routes: routes.Select((r, i) => new RouteConfig
-                {
-                    RouteId = $"route-{i}",
-                    ClusterId = $"cluster-{i}",
-                    Match = new RouteMatch { Path = ToYarpPath(r.Path) }
-                }).ToList(),
-                clusters: routes.Select((r, i) => new ClusterConfig
-                {
-                    ClusterId = $"cluster-{i}",
-                    Destinations = new Dictionary<string, DestinationConfig>
-                    {
-                        ["default"] = new() { Address = r.Target }
-                    }
-                }).ToList())
+                routes: ProxyRouteConfigFactory.BuildRoutes(routes),
+                clusters: ProxyRouteConfigFactory.BuildClusters(routes))
             .AddTransforms(context =>
             {
                 context.AddResponseTransform(transformContext =>
@@ -49,20 +37,5 @@ public static class ServiceCollectionExtensions
             });
 
         return services;
-    }
-
-    private static string ToYarpPath(string path)
-    {
-        if (path is "/**" or "/")
-        {
-            return "{**catch-all}";
-        }
-
-        if (path.EndsWith("/**"))
-        {
-            return path[..^3] + "/{**catch-all}";
-        }
-
-        return path;
     }
 }

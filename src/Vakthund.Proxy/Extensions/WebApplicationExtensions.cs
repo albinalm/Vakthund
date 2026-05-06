@@ -74,6 +74,9 @@ public static class WebApplicationExtensions
             ctx => ctx.Connection.LocalPort != managementPort,
             branch => branch.UseMiddleware<RequestInterceptor>());
 
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.MapReverseProxy().RequireHost(proxyHostPatterns);
 
         return app;

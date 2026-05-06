@@ -55,7 +55,7 @@ Each route has:
 
 - `path`: the incoming path pattern to match.
 - `target`: the upstream base URL.
-- `auth`: optional expectations used by the UI to explain auth failures.
+- `auth`: optional route auth contract. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
 
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally.
 
@@ -65,15 +65,16 @@ During local debug, `Vakthund.Proxy` automatically checks for `routes.local.yaml
 
 Explicit route file configuration still wins. Relative paths in `Proxy:RoutesFile` or `ROUTES_FILE` are resolved from the proxy content root.
 
-## Route Auth Expectations
+## Route Auth
 
-Routes can declare the auth contract the target service expects:
+Routes can declare the auth contract the target service expects. Without `enforced: true`, this is inspection context only:
 
 ```yaml
 routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
+      enforced: false
       issuer: https://login.example.com
       audience: orders-api
       scopes:
@@ -90,6 +91,31 @@ routes:
 
 The UI compares decoded bearer tokens against the matched route and reports issuer, audience, scope, role, expiry, and not-before mismatches in the auth verdict.
 
+Set `enforced: true` to authenticate and authorize at the proxy before traffic reaches the destination:
+
+```yaml
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      enforced: true
+      issuer: https://login.example.com
+      audience: orders-api
+      scopes:
+        - orders.read
+      roles:
+        - admin
+      jwksUrl: https://login.example.com/.well-known/jwks.json
+```
+
+When `enforced` is true, Vakthund configures a YARP authorization policy for the route. Missing, malformed, expired, unsigned, or untrusted bearer JWTs are rejected before forwarding. Scope and role mismatches are rejected by the route policy.
+
+Enforced auth requires a signing key source. Configure one of:
+
+- `auth.jwksUrl`.
+- `auth.openIdConfigurationUrl`.
+- `auth.issuer` as an absolute HTTP or HTTPS OIDC issuer URL.
+
 For signature validation, configure either `jwksUrl` directly or `openIdConfigurationUrl` for OIDC discovery:
 
 ```yaml
@@ -97,12 +123,13 @@ routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
+      enforced: true
       issuer: https://login.example.com
       audience: orders-api
       openIdConfigurationUrl: https://login.example.com/.well-known/openid-configuration
 ```
 
-If `issuer` is an absolute URL and no key endpoint is set, the UI tries `<issuer>/.well-known/openid-configuration`.
+If `issuer` is an absolute URL and no key endpoint is set, the proxy and UI try `<issuer>/.well-known/openid-configuration`.
 If no key endpoint or route issuer is configured, the UI may also try OIDC discovery from the token's `iss` claim. Token-derived metadata is used only for signature validation enrichment; configured route expectations remain the source of truth for issuer, audience, scope, and role checks.
 
 Signing keys are resolved in this order:
@@ -112,9 +139,9 @@ Signing keys are resolved in this order:
 3. OIDC metadata derived from `auth.issuer`.
 4. OIDC metadata derived from the token `iss` claim.
 
-The auth verdict labels the signing key source so inferred metadata is visible in the UI.
+The auth verdict labels the signing key source so inferred metadata is visible in the UI. Proxy enforcement does not infer metadata from the token issuer; `enforced: true` routes must declare their signing key source through route config.
 
-`auth.jwe` is optional route-level JWE decryption config. It is used only to decrypt encrypted bearer tokens so Vakthund can inspect the claims. It is not used for signature validation; signatures are still checked with `jwksUrl` or OIDC metadata.
+`auth.jwe` is optional route-level JWE decryption config. It is used only to decrypt encrypted bearer tokens so Vakthund can inspect the claims in the UI. It is not used for proxy enforcement or signature validation; signatures are still checked with `jwksUrl` or OIDC metadata.
 
 Supported JWE key types are `Rsa`, `Ec`, `Symmetric`, and `Password`. `Rsa` and `Ec` expect PEM private keys, `Symmetric` expects base64-encoded key bytes, and `Password` expects a plain password string. Route-level `auth.jwe` takes precedence over the global `UI:JweFallback`.
 

@@ -68,4 +68,38 @@ public class RoutesLoaderTests
             File.Delete(filePath);
         }
     }
+
+    [Fact]
+    public void TryLoad_MapsRouteAuthEnforced()
+    {
+        string filePath = Path.Combine(AppContext.BaseDirectory, $"{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(
+            filePath,
+            """
+            routes:
+              - path: /api/**
+                target: https://backend.example.test
+                auth:
+                  enforced: true
+                  issuer: https://issuer.example
+                  audience: orders-api
+                  scopes:
+                    - orders.read
+            """);
+
+        try
+        {
+            VakthundRoute route = Assert.Single(RoutesLoader.TryLoad(filePath)!);
+
+            Assert.NotNull(route.Auth);
+            Assert.True(route.Auth.Enforced);
+            Assert.Equal("https://issuer.example", route.Auth.Issuer);
+            Assert.Equal("orders-api", route.Auth.Audience);
+            Assert.Equal(["orders.read"], route.Auth.Scopes);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
 }

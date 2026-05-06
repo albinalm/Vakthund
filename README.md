@@ -22,6 +22,7 @@ It captures headers, bodies, tokens, timing, and auth failures without touching 
 - Streams captured requests from the proxy to the UI over SignalR.
 - Decodes bearer JWTs and basic auth headers in the request detail view.
 - Explains common auth failures with route-level issuer, audience, scope, role, and signature checks.
+- Can reject unauthenticated or unauthorized requests at the proxy before forwarding them.
 - Can decrypt JWE tokens when a key is configured.
 - Shows dashboard metrics, request history, route configuration, and per-request details.
 

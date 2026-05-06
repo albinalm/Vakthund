@@ -68,7 +68,7 @@ For auth verdicts, the UI extracts common JWT header and payload fields:
 - `alg`, `kid`, and `typ` from the token header.
 - `iss`, `aud`, `sub`, `scope`, `scp`, `roles`, `client_id`, `azp`, `exp`, `nbf`, and `iat` from the payload.
 
-When the matched route has auth expectations, Vakthund compares those claims against the configured issuer, audience, scopes, and roles. Configured route expectations are treated as truth.
+When the matched route has auth expectations, Vakthund compares those claims against the configured issuer, audience, scopes, and roles. Configured route expectations are treated as truth. If the route sets `auth.enforced: true`, the proxy also uses the same contract to reject unauthenticated or unauthorized bearer JWTs before forwarding.
 
 For JWT signatures, Vakthund uses signing keys in this order:
 

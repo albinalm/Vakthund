@@ -2,6 +2,7 @@ routes:
   - path: /api/**
     target: http://localhost:5000
     auth:
+      enforced: false
       issuer:
       audience:
       audiences: []

@@ -27,6 +27,7 @@ public partial class RequestDetail
     private IReadOnlyList<ParsedToken> _parsedTokens = [];
     private ParsedToken? _bearerToken;
     private AuthVerdict? _authVerdict;
+    private ProxyRouteInfo? _matchedRoute;
 
     private bool _bodyExpanded;
     private bool _responseBodyExpanded;
@@ -47,10 +48,10 @@ public partial class RequestDetail
         _headersExpanded = true;
         _cookiesExpanded = false;
         ProxyConfig? config = await LoadProxyConfigAsync();
-        ProxyRouteInfo? route = _entry?.MatchedRoute
+        _matchedRoute = _entry?.MatchedRoute
             ?? (_entry is not null ? ProxyRouteMatcher.FindMatchingRoute(config?.Routes, _entry.Path) : null);
         _parsedTokens = _entry is not null
-            ? JwtTokenParser.Parse(_entry.Headers, route?.Auth)
+            ? JwtTokenParser.Parse(_entry.Headers, _matchedRoute?.Auth)
             : [];
         _bearerToken = _parsedTokens.FirstOrDefault(IsBearerToken);
         _authVerdict = _entry is not null && ShouldShowAuthVerdict(_entry, _parsedTokens)
@@ -110,6 +111,22 @@ public partial class RequestDetail
 
     private static bool ShouldShowAuthVerdict(AuditEntry entry, IReadOnlyList<ParsedToken> parsedTokens) =>
         parsedTokens.Any(IsBearerToken) || entry.StatusCode is 401 or 403;
+
+    private bool IsProxyDeniedByEnforcedAuth =>
+        _entry is { StatusCode: 401 or 403, TargetDurationMs: null } &&
+        _matchedRoute?.Auth?.Enforced == true;
+
+    private string ResponseOrigin => IsProxyDeniedByEnforcedAuth
+        ? "Proxy auth"
+        : _entry?.TargetDurationMs is not null
+            ? "Upstream"
+            : "Proxy";
+
+    private string ResponseOriginDetail => IsProxyDeniedByEnforcedAuth
+        ? "Denied before forwarding"
+        : _entry?.TargetDurationMs is not null
+            ? "Forwarded to target"
+            : "No target response";
 
     private static string AuthVerdictClasses(AuthVerdictSeverity severity) => severity switch
     {

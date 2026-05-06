@@ -155,13 +155,14 @@ The `path` value is matched by YARP. Vakthund accepts common catch-all paths suc
 
 When a routes file is present, it takes priority over `TARGET`.
 
-Routes can also include auth expectations. These do not change proxy behavior; they give the UI enough context to explain why a request failed authentication or authorization:
+Routes can also include auth expectations. By default these give the UI enough context to explain why a request failed authentication or authorization:
 
 ```yaml
 routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
+      enforced: false
       issuer: https://login.example.com
       audience: orders-api
       scopes:
@@ -173,6 +174,23 @@ routes:
 ```
 
 Open a captured request and check the auth verdict to see whether the bearer token matches the configured route expectations.
+
+Set `enforced: true` when the proxy should reject unauthenticated or unauthorized requests before forwarding them:
+
+```yaml
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth:
+      enforced: true
+      issuer: https://login.example.com
+      audience: orders-api
+      scopes:
+        - orders.read
+      jwksUrl: https://login.example.com/.well-known/jwks.json
+```
+
+Enforced route auth validates bearer JWT signatures and local claims. An enforced route must configure `jwksUrl`, `openIdConfigurationUrl`, or an absolute URL `issuer` that supports OIDC discovery.
 
 For local debugging without Docker, create `src/Vakthund.Proxy/routes.local.yaml`. When the proxy runs in `Development` and no explicit `ROUTES_FILE` or `Proxy:RoutesFile` is set, Vakthund loads that file automatically. The local file is ignored by Git; `src/Vakthund.Proxy/routes.local.example.yaml` shows the expected shape.
 

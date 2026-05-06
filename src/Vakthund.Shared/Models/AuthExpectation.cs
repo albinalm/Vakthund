@@ -2,6 +2,7 @@ namespace Vakthund.Shared.Models;
 
 public class AuthExpectation
 {
+    public bool Enforced { get; set; }
     public string? Issuer { get; set; }
     public string? Audience { get; set; }
     public List<string> Audiences { get; set; } = [];

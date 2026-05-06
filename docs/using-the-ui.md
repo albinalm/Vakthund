@@ -32,7 +32,8 @@ Open a row to inspect the full request.
 
 The request detail page shows:
 
-- Method, URL, status, timestamp, duration, host, and scheme.
+- Method, URL, status, timestamp, duration, response origin, matched route, host, and scheme.
+- Whether a 401/403 was denied by proxy-enforced auth before reaching the upstream target.
 - Request body and response body when captured.
 - Query parameters.
 - Auth verdict.
@@ -68,7 +69,7 @@ The configuration page reads the proxy management endpoint and shows:
 - Proxy queue size.
 - JWE key type configured in the UI.
 
-Routes with auth expectations show issuer, audience, scope, and role chips in the configuration page.
+Routes with auth expectations show issuer, audience, scope, and role chips in the configuration page. Routes that enforce auth at the proxy also show an `enforced` chip.
 
 If the configuration page cannot reach the proxy, check the UI `HUB` setting and make sure the proxy management port is reachable from the UI container.
 
