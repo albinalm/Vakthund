@@ -97,6 +97,7 @@ public static class WebApplicationExtensions
 
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRequestTimeouts();
 
         app.MapReverseProxy().RequireHost(proxyHostPatterns);
 

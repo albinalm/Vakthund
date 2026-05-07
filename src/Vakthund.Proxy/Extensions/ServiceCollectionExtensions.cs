@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProxyActivityFeed>();
         services.AddSingleton<RequestInterceptor>();
         services.AddHostedService<AuditBroadcastWorker>();
+        services.AddRequestTimeouts();
         services.AddRouteAuthentication(routes);
         services.AddReverseProxy()
             .LoadFromMemory(

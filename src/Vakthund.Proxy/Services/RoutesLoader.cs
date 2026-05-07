@@ -144,7 +144,7 @@ public static class RoutesLoader
 
     private static AuthExpectation CloneAuth(AuthExpectation auth)
     {
-        JweDecryptionConfig jwe = auth.Jwe ?? new();
+        JweDecryptionConfig jwe = auth.Jwe ?? new JweDecryptionConfig();
         return new AuthExpectation
         {
             Enforced = auth.Enforced,
