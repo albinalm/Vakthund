@@ -27,15 +27,40 @@ public static class ProxyRouteConfigFactory
             };
         }).ToList();
 
+    internal const string ConnectTimeoutMetadataKey = "vakthund:connect-timeout-ticks";
+
     public static List<ClusterConfig> BuildClusters(IReadOnlyList<VakthundRoute> routes) =>
-        routes.Select((route, index) => new ClusterConfig
+        routes.Select((route, index) =>
         {
-            ClusterId = $"cluster-{index}",
-            Destinations = new Dictionary<string, DestinationConfig>
+            RouteTimeout timeout = BuildTimeout(route);
+            return new ClusterConfig
             {
-                ["default"] = new() { Address = route.Target }
-            }
+                ClusterId = $"cluster-{index}",
+                Destinations = new Dictionary<string, DestinationConfig>
+                {
+                    ["default"] = new() { Address = route.Target }
+                },
+                Metadata = BuildClusterMetadata(timeout)
+            };
         }).ToList();
+
+    private static IReadOnlyDictionary<string, string>? BuildClusterMetadata(RouteTimeout timeout)
+    {
+        if (timeout.Value is { } ts)
+        {
+            return new Dictionary<string, string>
+            {
+                [ConnectTimeoutMetadataKey] = ts.Ticks.ToString(CultureInfo.InvariantCulture)
+            };
+        }
+
+        if (timeout.Policy is not null)
+        {
+            return new Dictionary<string, string> { [ConnectTimeoutMetadataKey] = "0" };
+        }
+
+        return null;
+    }
 
     private static string ToYarpPath(string path)
     {

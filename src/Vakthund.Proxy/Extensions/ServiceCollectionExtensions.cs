@@ -1,3 +1,4 @@
+using System.Globalization;
 using Vakthund.Proxy.Middlewares;
 using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Options;
@@ -20,7 +21,24 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<AuditBroadcastWorker>();
         services.AddRequestTimeouts();
         services.AddRouteAuthentication(routes);
+        int fallbackConnectTimeoutSeconds = config.GetValue("Proxy:ConnectTimeoutSeconds", 30);
+        TimeSpan fallbackConnectTimeout = fallbackConnectTimeoutSeconds <= 0
+            ? Timeout.InfiniteTimeSpan
+            : TimeSpan.FromSeconds(fallbackConnectTimeoutSeconds);
+
         services.AddReverseProxy()
+            .ConfigureHttpClient((context, handler) =>
+            {
+                if (context.NewMetadata?.TryGetValue(ProxyRouteConfigFactory.ConnectTimeoutMetadataKey, out string? tickStr) == true &&
+                    long.TryParse(tickStr, CultureInfo.InvariantCulture, out long ticks))
+                {
+                    handler.ConnectTimeout = ticks == 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromTicks(ticks);
+                }
+                else
+                {
+                    handler.ConnectTimeout = fallbackConnectTimeout;
+                }
+            })
             .LoadFromMemory(
                 routes: ProxyRouteConfigFactory.BuildRoutes(routes),
                 clusters: ProxyRouteConfigFactory.BuildClusters(routes))
