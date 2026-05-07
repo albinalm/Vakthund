@@ -29,6 +29,11 @@ public static class WebApplicationBuilderExtensions
             builder.Configuration["UI:Retention"] = retention;
         }
 
+        if (Environment.GetEnvironmentVariable("PATH_BASE") is { Length: > 0 } pathBase)
+        {
+            builder.Configuration["UI:PathBase"] = pathBase;
+        }
+
         return builder;
     }
 }

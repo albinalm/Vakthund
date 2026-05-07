@@ -7,6 +7,7 @@ public class UiOptions
     public int MaxStoredAuditEntries { get; set; } = 50_000;
     public StorageMode StorageMode { get; set; } = StorageMode.Memory;
     public string StoragePath { get; set; } = "";
+    public string PathBase { get; set; } = "";
     public string Retention { get; set; } = "";
 
     public TimeSpan? RetentionPeriod

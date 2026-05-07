@@ -251,8 +251,8 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
 
         AddIssuerMismatch(mismatches, expectation, claims);
         AddAudienceMismatch(mismatches, expectation, claims);
-        AddMissingValues(mismatches, "scope", expectation.Scopes, claims.Scopes);
-        AddMissingValues(mismatches, "role", expectation.Roles, claims.Roles);
+        AddMissingValues(mismatches, "scope", expectation.Scopes ?? [], claims.Scopes);
+        AddMissingValues(mismatches, "role", expectation.Roles ?? [], claims.Roles);
 
         return mismatches;
     }
@@ -305,7 +305,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
             audiences.Add(expectation.Audience);
         }
 
-        audiences.AddRange(expectation.Audiences.Where(audience => !string.IsNullOrWhiteSpace(audience)));
+        audiences.AddRange((expectation.Audiences ?? []).Where(audience => !string.IsNullOrWhiteSpace(audience)));
         return audiences.Distinct(StringComparer.Ordinal).ToArray();
     }
 
@@ -313,15 +313,15 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
         expectation is not null &&
         (!string.IsNullOrWhiteSpace(expectation.Issuer) ||
          !string.IsNullOrWhiteSpace(expectation.Audience) ||
-         expectation.Audiences.Count > 0 ||
-         expectation.Scopes.Count > 0 ||
-         expectation.Roles.Count > 0 ||
+         expectation.Audiences?.Count > 0 ||
+         expectation.Scopes?.Count > 0 ||
+         expectation.Roles?.Count > 0 ||
          !string.IsNullOrWhiteSpace(expectation.OpenIdConfigurationUrl) ||
          !string.IsNullOrWhiteSpace(expectation.JwksUrl) ||
          IsJweConfigured(expectation.Jwe));
 
-    private static bool IsJweConfigured(JweDecryptionConfig jwe) =>
-        jwe.KeyType.HasValue || !string.IsNullOrWhiteSpace(jwe.Key);
+    private static bool IsJweConfigured(JweDecryptionConfig? jwe) =>
+        jwe is not null && (jwe.KeyType.HasValue || !string.IsNullOrWhiteSpace(jwe.Key));
 
     private static string FormatExpected(IReadOnlyList<string> values) =>
         string.Join(", ", values.Select(value => $"'{value}'"));

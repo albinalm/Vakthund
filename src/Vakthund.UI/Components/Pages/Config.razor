@@ -80,21 +80,21 @@
                                     {
                                         <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">aud @route.Auth.Audience</span>
                                     }
-                                    @foreach (string audience in route.Auth.Audiences)
+                                    @foreach (string audience in route.Auth.Audiences ?? [])
                                     {
                                         <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">aud @audience</span>
                                     }
-                                    @foreach (string scope in route.Auth.Scopes)
+                                    @foreach (string scope in route.Auth.Scopes ?? [])
                                     {
                                         <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">scope @scope</span>
                                     }
-                                    @foreach (string role in route.Auth.Roles)
+                                    @foreach (string role in route.Auth.Roles ?? [])
                                     {
                                         <span class="rounded border border-gray-700 px-1.5 py-0.5 font-mono text-xs text-gray-500">role @role</span>
                                     }
-                                    @if (route.Auth.Jwe.KeyType.HasValue)
+                                    @if (route.Auth.Jwe?.KeyType.HasValue == true)
                                     {
-                                        <span class="rounded border border-violet-600 px-1.5 py-0.5 font-mono text-xs text-violet-400">jwe @route.Auth.Jwe.KeyType.Value</span>
+                                        <span class="rounded border border-violet-600 px-1.5 py-0.5 font-mono text-xs text-violet-400">jwe @route.Auth.Jwe!.KeyType.Value</span>
                                     }
                                 </div>
                             }

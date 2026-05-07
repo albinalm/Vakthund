@@ -48,7 +48,7 @@ public static class RoutesLoader
 
         foreach (NamedAuthExpectation auth in auths)
         {
-            string? name = auth.Name.Trim();
+            string? name = auth.Name?.Trim();
             if (string.IsNullOrWhiteSpace(name))
             {
                 throw new InvalidOperationException("Routes file auths entries must define a non-empty name.");
@@ -69,7 +69,7 @@ public static class RoutesLoader
 
         foreach (IpPolicy ipList in ips)
         {
-            string? name = ipList.Name.Trim();
+            string? name = ipList.Name?.Trim();
             if (string.IsNullOrWhiteSpace(name))
             {
                 throw new InvalidOperationException("Routes file ipPolicies entries must define a non-empty name.");
@@ -144,16 +144,15 @@ public static class RoutesLoader
 
     private static AuthExpectation CloneAuth(AuthExpectation auth)
     {
-        JweDecryptionConfig jwe = auth.Jwe;
-
+        JweDecryptionConfig jwe = auth.Jwe ?? new();
         return new AuthExpectation
         {
             Enforced = auth.Enforced,
             Issuer = auth.Issuer,
             Audience = auth.Audience,
-            Audiences = [.. auth.Audiences],
-            Scopes = [.. auth.Scopes],
-            Roles = [.. auth.Roles],
+            Audiences = auth.Audiences is null ? [] : [.. auth.Audiences],
+            Scopes = auth.Scopes is null ? [] : [.. auth.Scopes],
+            Roles = auth.Roles is null ? [] : [.. auth.Roles],
             OpenIdConfigurationUrl = auth.OpenIdConfigurationUrl,
             JwksUrl = auth.JwksUrl,
             Jwe = new JweDecryptionConfig
@@ -173,13 +172,13 @@ public static class RoutesLoader
 
     private sealed class IpPolicy
     {
-        public string Name { get; set; } = "";
+        public string? Name { get; set; }
         public List<string> Entries { get; set; } = [];
     }
 
     private sealed class NamedAuthExpectation : AuthExpectation
     {
-        public string Name { get; set; } = "";
+        public string? Name { get; set; }
     }
 
     private sealed class RouteDefinition

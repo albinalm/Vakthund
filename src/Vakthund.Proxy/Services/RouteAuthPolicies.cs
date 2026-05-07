@@ -60,7 +60,7 @@ public static class RouteAuthPolicies
             audiences.Add(auth.Audience);
         }
 
-        audiences.AddRange(auth.Audiences.Where(audience => !string.IsNullOrWhiteSpace(audience)));
+        audiences.AddRange((auth.Audiences ?? []).Where(audience => !string.IsNullOrWhiteSpace(audience)));
         return audiences.Distinct(StringComparer.Ordinal).ToArray();
     }
 
@@ -116,13 +116,13 @@ public static class RouteAuthPolicies
             policy.AuthenticationSchemes.Add(schemeName);
             policy.RequireAuthenticatedUser();
 
-            string[] scopes = RequiredValues(auth.Scopes);
+            string[] scopes = RequiredValues(auth.Scopes ?? []);
             if (scopes.Length > 0)
             {
                 policy.RequireAssertion(context => HasAllClaimValues(context.User, scopes, "scope", "scp"));
             }
 
-            string[] roles = RequiredValues(auth.Roles);
+            string[] roles = RequiredValues(auth.Roles ?? []);
             if (roles.Length > 0)
             {
                 policy.RequireAssertion(context => HasAllClaimValues(context.User, roles, "roles", "role", ClaimTypes.Role));

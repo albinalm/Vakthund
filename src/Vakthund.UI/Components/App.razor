@@ -7,11 +7,11 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <base href="/"/>
+    <base href="@(HttpContext.Request.PathBase + "/")"/>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
-    <script src="/theme.js"></script>
+    <script src="theme.js"></script>
     <ResourcePreloader/>
     <link rel="stylesheet" href="_content/Radzen.Blazor/css/dark.css" media="(prefers-color-scheme: dark)"/>
     <link rel="stylesheet" href="_content/Radzen.Blazor/css/default.css" media="(prefers-color-scheme: light)"/>
