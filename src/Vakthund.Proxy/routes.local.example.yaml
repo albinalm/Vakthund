@@ -1,20 +1,23 @@
+auths:
+  - name: local-api
+    enforced: false
+    issuer:
+    audience:
+    audiences: []
+    scopes: []
+    roles: []
+    jwksUrl:
+    openIdConfigurationUrl:
+    jwe:
+      keyType:
+      key:
 routes:
   - path: /foobar/**
     target: http://localhost:5001
     to: /api/foobar
+    auth: local-api
   - path: /api/**
     target: http://localhost:5000
-    auth:
-      enforced: false
-      issuer:
-      audience:
-      audiences: []
-      scopes: []
-      roles: []
-      jwksUrl:
-      openIdConfigurationUrl:
-      jwe:
-        keyType:
-        key:
+    auth: local-api
   - path: /**
     target: http://localhost:3000

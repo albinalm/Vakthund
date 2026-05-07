@@ -49,6 +49,11 @@ routes:
     target: http://host.docker.internal:3000
 ```
 
+The root object supports:
+
+- `routes`: route definitions for incoming paths.
+- `auths`: optional named auth contracts that routes can reference.
+
 When the upstream service uses a different path than the downstream path exposed by Vakthund, add `to` on that route:
 
 ```yaml
@@ -65,7 +70,7 @@ Each route has:
 - `path`: the incoming path pattern to match.
 - `target`: the upstream base URL.
 - `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
-- `auth`: optional route auth contract. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
+- `auth`: optional route auth contract. This can be an inline auth object or the name of an auth contract defined under `auths`. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
 
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally. A path such as `/logs/**` matches `/logs`, `/logs/`, and deeper paths such as `/logs/archive/2026`.
 
@@ -98,6 +103,28 @@ routes:
           ...
           -----END PRIVATE KEY-----
 ```
+
+If multiple routes use the same auth contract, define it once under `auths` and reference it by name from each route:
+
+```yaml
+auths:
+  - name: orders-auth
+    enforced: true
+    issuer: https://login.example.com
+    audience: orders-api
+    scopes:
+      - orders.read
+    jwksUrl: https://login.example.com/.well-known/jwks.json
+routes:
+  - path: /api/orders/**
+    target: http://host.docker.internal:5000
+    auth: orders-auth
+  - path: /api/order-events/**
+    target: http://host.docker.internal:5002
+    auth: orders-auth
+```
+
+Auth names must be non-empty and unique. A route that references an unknown auth name fails startup instead of silently running without auth context.
 
 The UI compares decoded bearer tokens against the matched route and reports issuer, audience, scope, role, expiry, and not-before mismatches in the auth verdict.
 
