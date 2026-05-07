@@ -162,7 +162,7 @@ routes:
 
 For example, `/foobar/items/123` is forwarded to `http://host.docker.internal:5001/api/foobar/items/123`.
 
-The `path` value is matched by YARP. Vakthund accepts common catch-all paths such as `/**` and `/api/**`, and converts them to YARP catch-all patterns internally.
+The `path` value is matched by YARP. Vakthund accepts common catch-all paths such as `/**` and `/api/**`, and converts them to YARP catch-all patterns internally. A route such as `/logs/**` matches `/logs`, `/logs/`, and deeper paths such as `/logs/archive/2026`.
 
 When a routes file is present, it takes priority over `TARGET`.
 
