@@ -181,7 +181,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                 command.CommandText = """
                                       SELECT StatusCode, COUNT(*)
                                       FROM AuditEntries
-                                      WHERE StatusCode IS NOT NULL
+                                      WHERE StatusCode IS NOT NULL AND Upstreamed = 1
                                       GROUP BY StatusCode;
                                       """;
 
@@ -262,6 +262,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                  Path TEXT NOT NULL,
                                  Query TEXT NULL,
                                  Method TEXT NOT NULL,
+                                 ClientIp TEXT NULL,
                                  HeadersJson TEXT NOT NULL,
                                  CookiesJson TEXT NOT NULL,
                                  QueriesJson TEXT NOT NULL,
@@ -272,7 +273,8 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                  StatusCode INTEGER NULL,
                                  TargetDurationMs INTEGER NULL,
                                  DurationMs INTEGER NOT NULL,
-                                 MatchedRouteJson TEXT NULL
+                                 MatchedRouteJson TEXT NULL,
+                                 Upstreamed INTEGER NOT NULL DEFAULT 1
                              );
 
                              CREATE INDEX IF NOT EXISTS IX_AuditEntries_Timestamp
@@ -284,6 +286,28 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
         {
             using SqliteCommand migrate = connection.CreateCommand();
             migrate.CommandText = "ALTER TABLE AuditEntries ADD COLUMN MatchedRouteJson TEXT NULL;";
+            migrate.ExecuteNonQuery();
+        }
+        catch (SqliteException)
+        {
+            // Column already exists in pre-existing databases.
+        }
+
+        try
+        {
+            using SqliteCommand migrate = connection.CreateCommand();
+            migrate.CommandText = "ALTER TABLE AuditEntries ADD COLUMN ClientIp TEXT NULL;";
+            migrate.ExecuteNonQuery();
+        }
+        catch (SqliteException)
+        {
+            // Column already exists in pre-existing databases.
+        }
+
+        try
+        {
+            using SqliteCommand migrate = connection.CreateCommand();
+            migrate.CommandText = "ALTER TABLE AuditEntries ADD COLUMN Upstreamed INTEGER NOT NULL DEFAULT 1;";
             migrate.ExecuteNonQuery();
         }
         catch (SqliteException)
@@ -310,6 +334,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   Path,
                                   Query,
                                   Method,
+                                  ClientIp,
                                   HeadersJson,
                                   CookiesJson,
                                   QueriesJson,
@@ -320,7 +345,8 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   StatusCode,
                                   TargetDurationMs,
                                   DurationMs,
-                                  MatchedRouteJson
+                                  MatchedRouteJson,
+                                  Upstreamed
                               )
                               VALUES
                               (
@@ -331,6 +357,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   $path,
                                   $query,
                                   $method,
+                                  $clientIp,
                                   $headersJson,
                                   $cookiesJson,
                                   $queriesJson,
@@ -341,7 +368,8 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   $statusCode,
                                   $targetDurationMs,
                                   $durationMs,
-                                  $matchedRouteJson
+                                  $matchedRouteJson,
+                                  $upstreamed
                               )
                               ON CONFLICT(Id) DO UPDATE SET
                                   Timestamp = excluded.Timestamp,
@@ -350,6 +378,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   Path = excluded.Path,
                                   Query = excluded.Query,
                                   Method = excluded.Method,
+                                  ClientIp = excluded.ClientIp,
                                   HeadersJson = excluded.HeadersJson,
                                   CookiesJson = excluded.CookiesJson,
                                   QueriesJson = excluded.QueriesJson,
@@ -360,7 +389,8 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   StatusCode = excluded.StatusCode,
                                   TargetDurationMs = excluded.TargetDurationMs,
                                   DurationMs = excluded.DurationMs,
-                                  MatchedRouteJson = excluded.MatchedRouteJson;
+                                  MatchedRouteJson = excluded.MatchedRouteJson,
+                                  Upstreamed = excluded.Upstreamed;
                               """;
 
         command.Parameters.AddWithValue("$id", entry.Id.ToString());
@@ -370,6 +400,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
         command.Parameters.AddWithValue("$path", entry.Path);
         command.Parameters.AddWithValue("$query", ToDbValue(entry.Query));
         command.Parameters.AddWithValue("$method", entry.Method);
+        command.Parameters.AddWithValue("$clientIp", ToDbValue(entry.ClientIp));
         command.Parameters.AddWithValue("$headersJson", JsonSerializer.Serialize(entry.Headers));
         command.Parameters.AddWithValue("$cookiesJson", JsonSerializer.Serialize(entry.Cookies));
         command.Parameters.AddWithValue("$queriesJson", JsonSerializer.Serialize(entry.Queries));
@@ -382,6 +413,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
         command.Parameters.AddWithValue("$durationMs", entry.DurationMs);
         command.Parameters.AddWithValue("$matchedRouteJson",
             entry.MatchedRoute is not null ? JsonSerializer.Serialize(entry.MatchedRoute) : DBNull.Value);
+        command.Parameters.AddWithValue("$upstreamed", entry.Upstreamed ? 1 : 0);
 
         command.ExecuteNonQuery();
     }
@@ -452,6 +484,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
             Path = reader.GetString(reader.GetOrdinal("Path")),
             Query = GetNullableString(reader, "Query"),
             Method = reader.GetString(reader.GetOrdinal("Method")),
+            ClientIp = GetNullableString(reader, "ClientIp"),
             Headers = DeserializeDictionary(reader.GetString(reader.GetOrdinal("HeadersJson"))),
             Cookies = DeserializeDictionary(reader.GetString(reader.GetOrdinal("CookiesJson"))),
             Queries = DeserializeDictionary(reader.GetString(reader.GetOrdinal("QueriesJson"))),
@@ -462,7 +495,8 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
             StatusCode = GetNullableInt(reader, "StatusCode"),
             TargetDurationMs = GetNullableLong(reader, "TargetDurationMs"),
             DurationMs = reader.GetInt64(reader.GetOrdinal("DurationMs")),
-            MatchedRoute = DeserializeRoute(GetNullableString(reader, "MatchedRouteJson"))
+            MatchedRoute = DeserializeRoute(GetNullableString(reader, "MatchedRouteJson")),
+            Upstreamed = reader.GetInt64(reader.GetOrdinal("Upstreamed")) != 0
         };
     }
 

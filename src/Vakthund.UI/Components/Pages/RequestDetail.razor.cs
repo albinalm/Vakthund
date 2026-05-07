@@ -112,21 +112,35 @@ public partial class RequestDetail
     private static bool ShouldShowAuthVerdict(AuditEntry entry, IReadOnlyList<ParsedToken> parsedTokens) =>
         parsedTokens.Any(IsBearerToken) || entry.StatusCode is 401 or 403;
 
+    private bool IsProxyDenied => _entry is { Upstreamed: false };
+
     private bool IsProxyDeniedByEnforcedAuth =>
-        _entry is { StatusCode: 401 or 403, TargetDurationMs: null } &&
-        _matchedRoute?.Auth?.Enforced == true;
+        IsProxyDenied && _matchedRoute?.Auth?.Enforced == true;
 
-    private string ResponseOrigin => IsProxyDeniedByEnforcedAuth
-        ? "Proxy auth"
-        : _entry?.TargetDurationMs is not null
-            ? "Upstream"
-            : "Proxy";
+    private bool IsProxyDeniedByIpPolicy =>
+        IsProxyDenied && !IsProxyDeniedByEnforcedAuth && (_matchedRoute?.Ips.Count ?? 0) > 0;
 
-    private string ResponseOriginDetail => IsProxyDeniedByEnforcedAuth
-        ? "Denied before forwarding"
-        : _entry?.TargetDurationMs is not null
-            ? "Forwarded to target"
-            : "No target response";
+    private string ResponseOrigin
+    {
+        get
+        {
+            if (IsProxyDeniedByEnforcedAuth) return "Auth policy";
+            if (IsProxyDeniedByIpPolicy) return "IP policy";
+            if (IsProxyDenied) return "Route policy";
+            return _entry?.TargetDurationMs is not null ? "Upstream" : "Proxy";
+        }
+    }
+
+    private string ResponseOriginDetail
+    {
+        get
+        {
+            if (IsProxyDeniedByEnforcedAuth) return "Denied before forwarding";
+            if (IsProxyDeniedByIpPolicy) return "IP not in allowlist";
+            if (IsProxyDenied) return "Denied before forwarding";
+            return _entry?.TargetDurationMs is not null ? "Forwarded to target" : "No target response";
+        }
+    }
 
     private static string AuthVerdictClasses(AuthVerdictSeverity severity) => severity switch
     {

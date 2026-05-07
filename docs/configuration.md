@@ -70,11 +70,38 @@ Each route has:
 - `path`: the incoming path pattern to match.
 - `target`: the upstream base URL.
 - `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
+- `timeout`: optional per-route proxy timeout. Use milliseconds, `hh:mm:ss`, or a value ending in `ms`, `s`, `m`, or `h`. Use `disable` to disable YARP's route timeout.
+- `ips`: optional client IP whitelist for the route. Values can be exact IPs, CIDR ranges, or trailing IPv4 wildcards such as `203.0.*` and `203.0.113.*`.
 - `auth`: optional route auth contract. This can be an inline auth object or the name of an auth contract defined under `auths`. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
 
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally. A path such as `/logs/**` matches `/logs`, `/logs/`, and deeper paths such as `/logs/archive/2026`.
 
 Use specific paths for individual services, and add a broad `/**` fallback only when you want unmatched traffic to go somewhere.
+
+For long-running APIs, configure `timeout` on the specific route:
+
+```yaml
+routes:
+  - path: /api/generate
+    target: http://host.docker.internal:5000
+    timeout: 1h
+```
+
+The same timeout can also be written as `3600000`, `3600s`, `60m`, or `01:00:00`.
+
+To restrict a route by client IP, add `ips`:
+
+```yaml
+routes:
+  - path: /api/generate
+    target: http://host.docker.internal:5000
+    timeout: 1h
+    ips:
+      - 203.0.113.*
+      - 10.0.0.0/8
+```
+
+Requests outside the whitelist are rejected by the proxy before forwarding. Vakthund resolves the client IP from `X-Forwarded-For`, then `X-Real-IP`, then the direct remote address. When running behind Nginx, keep setting those headers at the trusted edge proxy.
 
 When no explicit routes file is configured, `Vakthund.Proxy` automatically checks for `routes.local.yaml` beside the running proxy. During local source runs this is `src/Vakthund.Proxy/routes.local.yaml`; for a published non-Docker app it is a sidecar file next to the published proxy. The source local file is ignored by Git so each developer can keep machine-specific targets and auth expectations locally. Use `src/Vakthund.Proxy/routes.local.example.yaml` as the committed shape.
 

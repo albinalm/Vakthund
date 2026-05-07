@@ -1,6 +1,8 @@
 using System.Security.Claims;
+using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Vakthund.Proxy.Models;
@@ -100,6 +102,56 @@ public class RouteAuthPoliciesTests
         Assert.False(missingScopeResult.Succeeded);
     }
 
+    [Fact]
+    public async Task RoutePolicy_AllowsMatchingClientIp()
+    {
+        using ServiceProvider provider = BuildIpWhitelistServiceProvider();
+        var authorization = provider.GetRequiredService<IAuthorizationService>();
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("203.0.113.42");
+
+        AuthorizationResult result = await authorization.AuthorizeAsync(
+            new ClaimsPrincipal(new ClaimsIdentity()),
+            context,
+            RouteAuthPolicies.PolicyName(0));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task RoutePolicy_RejectsNonMatchingClientIp()
+    {
+        using ServiceProvider provider = BuildIpWhitelistServiceProvider();
+        var authorization = provider.GetRequiredService<IAuthorizationService>();
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = IPAddress.Parse("198.51.100.10");
+
+        AuthorizationResult result = await authorization.AuthorizeAsync(
+            new ClaimsPrincipal(new ClaimsIdentity()),
+            context,
+            RouteAuthPolicies.PolicyName(0));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public void AddRouteAuthentication_RejectsInvalidIpWhitelistEntry()
+    {
+        var services = new ServiceCollection();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => services.AddRouteAuthentication(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "https://backend.example",
+                Ips = ["203.*.113.*"]
+            }
+        ]));
+
+        Assert.Contains("invalid ip whitelist entry", exception.Message);
+    }
+
     private static ServiceProvider BuildEnforcedRouteServiceProvider()
     {
         var services = new ServiceCollection();
@@ -119,6 +171,23 @@ public class RouteAuthPoliciesTests
                     Roles = ["admin"],
                     JwksUrl = "https://issuer.example/jwks"
                 }
+            }
+        ]);
+
+        return services.BuildServiceProvider();
+    }
+
+    private static ServiceProvider BuildIpWhitelistServiceProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddRouteAuthentication(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "https://backend.example",
+                Ips = ["203.0.113.*", "10.0.0.0/8"]
             }
         ]);
 

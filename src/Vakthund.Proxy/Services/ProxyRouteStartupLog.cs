@@ -10,7 +10,9 @@ public static class ProxyRouteStartupLog
             DownstreamPath: route.Path,
             UpstreamBase: NormalizeBase(route.Target),
             UpstreamPath: ResolveUpstreamPath(route),
-            RewritePath: string.IsNullOrWhiteSpace(route.To) ? null : NormalizePath(route.To)))
+            RewritePath: string.IsNullOrWhiteSpace(route.To) ? null : NormalizePath(route.To),
+            Timeout: string.IsNullOrWhiteSpace(route.Timeout) ? null : route.Timeout.Trim(),
+            Ips: route.Ips is { Count: > 0 } ? [.. route.Ips] : []))
         .ToList();
 
     public static void Log(ILogger logger, IReadOnlyList<VakthundRoute> routes)
@@ -20,12 +22,14 @@ public static class ProxyRouteStartupLog
         foreach (ProxyRouteLogEntry entry in BuildEntries(routes))
         {
             logger.LogInformation(
-                "Proxy route configured {RouteIndex}: {DownstreamPath} -> {UpstreamBase}{UpstreamPath}; rewrite {PathRewrite}",
+                "Proxy route configured {RouteIndex}: {DownstreamPath} -> {UpstreamBase}{UpstreamPath}; rewrite {PathRewrite}; timeout {RouteTimeout}; ips {AllowedIps}",
                 entry.Index,
                 entry.DownstreamPath,
                 entry.UpstreamBase,
                 entry.UpstreamPath,
-                entry.RewritePath ?? "none");
+                entry.RewritePath ?? "none",
+                entry.Timeout ?? "default",
+                entry.Ips.Count > 0 ? string.Join(", ", entry.Ips) : "any");
         }
     }
 
@@ -86,4 +90,6 @@ public sealed record ProxyRouteLogEntry(
     string DownstreamPath,
     string UpstreamBase,
     string UpstreamPath,
-    string? RewritePath);
+    string? RewritePath,
+    string? Timeout,
+    IReadOnlyList<string> Ips);

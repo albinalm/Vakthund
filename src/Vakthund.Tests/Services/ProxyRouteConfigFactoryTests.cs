@@ -50,6 +50,23 @@ public class ProxyRouteConfigFactoryTests
     }
 
     [Fact]
+    public void BuildRoutes_SetsAuthorizationPolicy_WhenRouteHasIpWhitelist()
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "https://backend.example",
+                Ips = ["203.0.113.*"]
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        Assert.Equal(RouteAuthPolicies.PolicyName(0), route.AuthorizationPolicy);
+    }
+
+    [Fact]
     public void BuildRoutes_AddsPathPatternTransform_WhenCatchAllRouteHasToPath()
     {
         List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
@@ -83,5 +100,67 @@ public class ProxyRouteConfigFactoryTests
         RouteConfig route = Assert.Single(routes);
         IReadOnlyDictionary<string, string> transform = Assert.Single(route.Transforms!);
         Assert.Equal("/internal/health", transform["PathSet"]);
+    }
+
+    [Theory]
+    [InlineData("3600000")]
+    [InlineData("3600s")]
+    [InlineData("60m")]
+    [InlineData("1h")]
+    [InlineData("01:00:00")]
+    public void BuildRoutes_SetsRouteTimeout(string timeout)
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000",
+                Timeout = timeout
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        Assert.Equal(TimeSpan.FromHours(1), route.Timeout);
+        Assert.Null(route.TimeoutPolicy);
+    }
+
+    [Fact]
+    public void BuildRoutes_DisablesTimeout_WhenRouteTimeoutIsDisable()
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000",
+                Timeout = "disable"
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        Assert.Null(route.Timeout);
+        Assert.Equal("Disable", route.TimeoutPolicy);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1s")]
+    [InlineData("later")]
+    public void BuildRoutes_Throws_WhenRouteTimeoutIsInvalid(string timeout)
+    {
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            ProxyRouteConfigFactory.BuildRoutes(
+            [
+                new VakthundRoute
+                {
+                    Path = "/api/generate",
+                    Target = "http://localhost:5000",
+                    Timeout = timeout
+                }
+            ]));
+
+        Assert.Contains("timeout", exception.Message);
+        Assert.Contains("/api/generate", exception.Message);
     }
 }

@@ -342,6 +342,7 @@ public partial class Requests : IDisposable
         return Contains(entry.Method, term)
                || Contains(entry.StatusCode?.ToString(), term)
                || Contains(entry.Host, term)
+               || Contains(entry.ClientIp, term)
                || Contains(entry.Path, term)
                || Contains(entry.Query, term);
     }

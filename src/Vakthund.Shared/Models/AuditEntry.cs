@@ -11,6 +11,7 @@ public class AuditEntry
     public required string Path { get; set; }
     public string? Query { get; set; }
     public required string Method { get; set; }
+    public string? ClientIp { get; set; }
 
     public string Uri => string.IsNullOrEmpty(Query)
         ? $"{Scheme}://{Host}{Path}"
@@ -25,6 +26,7 @@ public class AuditEntry
     public int? StatusCode { get; set; }
     public long? TargetDurationMs { get; set; }
     public long DurationMs { get; set; }
+    public bool Upstreamed { get; set; }
     public DateTimeOffset CompletedAt => Timestamp.AddMilliseconds(DurationMs);
 
     [JsonIgnore]

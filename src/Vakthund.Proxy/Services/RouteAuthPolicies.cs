@@ -12,8 +12,13 @@ public static class RouteAuthPolicies
 {
     private const string PolicyPrefix = "vakthund-route-auth-";
     private const string SchemePrefix = "vakthund-route-jwt-";
+    private const string IpSchemeName = "vakthund-route-ip";
 
     public static bool EnforcesAuth(VakthundRoute route) => route.Auth?.Enforced == true;
+
+    public static bool RestrictsIp(VakthundRoute route) => RequiredValues(route.Ips ?? []).Length > 0;
+
+    public static bool RequiresAuthorization(VakthundRoute route) => EnforcesAuth(route) || RestrictsIp(route);
 
     public static string PolicyName(int routeIndex) => $"{PolicyPrefix}{routeIndex}";
 
@@ -29,11 +34,18 @@ public static class RouteAuthPolicies
             authentication.AddJwtBearer(SchemeName(index), options => ConfigureJwtBearer(options, route.Auth!));
         }
 
+        if (routes.Any(route => RestrictsIp(route) && !EnforcesAuth(route)))
+        {
+            authentication.AddScheme<AuthenticationSchemeOptions, IpWhitelistAuthenticationHandler>(
+                IpSchemeName,
+                _ => { });
+        }
+
         services.AddAuthorization(options =>
         {
-            foreach ((VakthundRoute route, int index) in EnforcedRoutes(routes))
+            foreach ((VakthundRoute route, int index) in AuthorizedRoutes(routes))
             {
-                options.AddPolicy(PolicyName(index), policy => ConfigurePolicy(policy, SchemeName(index), route.Auth!));
+                options.AddPolicy(PolicyName(index), policy => ConfigurePolicy(policy, route, index));
             }
         });
 
@@ -54,6 +66,9 @@ public static class RouteAuthPolicies
 
     private static IEnumerable<(VakthundRoute Route, int Index)> EnforcedRoutes(IReadOnlyList<VakthundRoute> routes) =>
         routes.Select((route, index) => (Route: route, Index: index)).Where(item => EnforcesAuth(item.Route));
+
+    private static IEnumerable<(VakthundRoute Route, int Index)> AuthorizedRoutes(IReadOnlyList<VakthundRoute> routes) =>
+        routes.Select((route, index) => (Route: route, Index: index)).Where(item => RequiresAuthorization(item.Route));
 
     private static void ConfigureJwtBearer(JwtBearerOptions options, AuthExpectation auth)
     {
@@ -92,26 +107,49 @@ public static class RouteAuthPolicies
         options.Authority = auth.Issuer!.TrimEnd('/');
     }
 
-    private static void ConfigurePolicy(AuthorizationPolicyBuilder policy, string schemeName, AuthExpectation auth)
+    private static void ConfigurePolicy(AuthorizationPolicyBuilder policy, VakthundRoute route, int routeIndex)
     {
-        policy.AuthenticationSchemes.Add(schemeName);
-        policy.RequireAuthenticatedUser();
-
-        string[] scopes = RequiredValues(auth.Scopes);
-        if (scopes.Length > 0)
+        if (EnforcesAuth(route))
         {
-            policy.RequireAssertion(context => HasAllClaimValues(context.User, scopes, "scope", "scp"));
+            string schemeName = SchemeName(routeIndex);
+            AuthExpectation auth = route.Auth!;
+            policy.AuthenticationSchemes.Add(schemeName);
+            policy.RequireAuthenticatedUser();
+
+            string[] scopes = RequiredValues(auth.Scopes);
+            if (scopes.Length > 0)
+            {
+                policy.RequireAssertion(context => HasAllClaimValues(context.User, scopes, "scope", "scp"));
+            }
+
+            string[] roles = RequiredValues(auth.Roles);
+            if (roles.Length > 0)
+            {
+                policy.RequireAssertion(context => HasAllClaimValues(context.User, roles, "roles", "role", ClaimTypes.Role));
+            }
         }
 
-        string[] roles = RequiredValues(auth.Roles);
-        if (roles.Length > 0)
+        if (RestrictsIp(route))
         {
-            policy.RequireAssertion(context => HasAllClaimValues(context.User, roles, "roles", "role", ClaimTypes.Role));
+            if (!EnforcesAuth(route))
+            {
+                policy.AuthenticationSchemes.Add(IpSchemeName);
+            }
+
+            IReadOnlyList<IpWhitelist.IpRange> ranges = IpWhitelist.Parse(route.Ips, route.Path);
+            policy.RequireAssertion(context =>
+                context.Resource is HttpContext httpContext &&
+                IpWhitelist.Allows(ClientIpResolver.Resolve(httpContext), ranges));
         }
     }
 
     private static void ValidateRoutes(IReadOnlyList<VakthundRoute> routes)
     {
+        foreach ((VakthundRoute route, _) in AuthorizedRoutes(routes))
+        {
+            _ = IpWhitelist.Parse(route.Ips, route.Path);
+        }
+
         foreach ((VakthundRoute route, _) in EnforcedRoutes(routes))
         {
             AuthExpectation auth = route.Auth!;

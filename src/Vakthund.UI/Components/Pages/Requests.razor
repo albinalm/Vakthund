@@ -75,9 +75,10 @@
                         AllowSorting="true" AllowPaging="true"
                         PageSize="10" PageSizeOptions="_pageSizeOptions"
                         EmptyText="No matching requests." AllowColumnResize="true" AllowColumnReorder="true"
-                        PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true">
+                        PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true"
+                        AllowColumnPicking="true" ColumnsPickerAllowFiltering="true">
             <Columns>
-                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Select" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Width="48px">
+                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Select" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Pickable="false" Width="48px">
                     <HeaderTemplate>
                         <RadzenCheckBox TValue="bool"
                                         TriState="false"
@@ -92,7 +93,7 @@
                                         @onclick:stopPropagation="true"/>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Open" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Width="56px">
+                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Open" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Pickable="false" Width="56px">
                     <Template Context="entry">
                         <a href="/request/@entry.Id" class="flex items-center justify-center text-amber-600 transition-colors hover:text-amber-400" title="Open">
                             <span class="material-symbols-outlined text-lg">open_in_new</span>
@@ -112,13 +113,30 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="StatusCode" Title="Status" Width="95px">
                     <Template Context="entry">
-                        <span
-                            class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(entry.StatusCode)">@entry.StatusCode</span>
+                        <span class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(entry.StatusCode)">@entry.StatusCode</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Upstreamed" Title="Forwarded" Width="110px"
+                                      FilterValue="true" FilterOperator="FilterOperator.Equals">
+                    <Template Context="entry">
+                        @if (entry.Upstreamed)
+                        {
+                            <span class="font-mono text-xs text-gray-500">upstream</span>
+                        }
+                        else
+                        {
+                            <span class="material-symbols-outlined text-sm text-orange-400" title="Blocked by route policy — not forwarded to upstream">block</span>
+                        }
                     </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Property="Host" Title="Host" Width="180px">
                     <Template Context="entry">
                         <span class="font-mono text-sm text-gray-300">@entry.Host</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AuditEntry" Property="ClientIp" Title="IP" Width="150px">
+                    <Template Context="entry">
+                        <span class="font-mono text-sm text-gray-300">@(entry.ClientIp ?? "-")</span>
                     </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AuditEntry" Title="Target">

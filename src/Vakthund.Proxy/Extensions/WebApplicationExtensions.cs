@@ -13,7 +13,7 @@ public static class WebApplicationExtensions
     public static WebApplication ConfigureUrls(this WebApplication app, IConfiguration config)
     {
         int managementPort = config.GetValue("Management:Port", 8081);
-        string managementUrl = config.GetValue("Management:Url", $"http://*:{managementPort}")!;
+        string managementUrl = config.GetValue("Management:Url", $"http://*:{managementPort}");
         string[] proxyUrls = config.GetSection("Proxy:Urls").Get<string[]>() ?? ["http://*:8080"];
 
         app.Urls.Clear();
@@ -59,6 +59,8 @@ public static class WebApplicationExtensions
                         Path = r.Path,
                         Target = r.Target,
                         To = r.To,
+                        Timeout = r.Timeout,
+                        Ips = [.. r.Ips],
                         Auth = r.Auth
                     })
                     .ToList(),

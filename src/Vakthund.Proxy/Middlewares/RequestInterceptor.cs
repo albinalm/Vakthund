@@ -34,6 +34,7 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
             Path = context.Request.Path.Value ?? "/",
             Query = context.Request.QueryString.HasValue ? context.Request.QueryString.Value : null,
             Method = context.Request.Method,
+            ClientIp = ClientIpResolver.Resolve(context),
             ContentType = context.Request.ContentType,
             Body = string.IsNullOrEmpty(body) ? null : body,
             Headers = context.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()),
@@ -128,5 +129,6 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
         context.Items[ProxyResponseCapturedItemKey] = true;
         entry.StatusCode = statusCode ?? context.Response.StatusCode;
         entry.TargetDurationMs = (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+        entry.Upstreamed = true;
     }
 }

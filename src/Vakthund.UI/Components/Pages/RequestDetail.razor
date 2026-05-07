@@ -26,6 +26,19 @@ else
             Back
         </button>
 
+        @if (IsProxyDenied)
+        {
+            <div class="rounded-lg border border-orange-800 bg-orange-950/30 p-3 flex items-center gap-3">
+                <span class="material-symbols-outlined text-orange-400">block</span>
+                <div>
+                    <div class="text-sm font-semibold text-orange-300">
+                        @(IsProxyDeniedByIpPolicy ? "Blocked by IP policy" : "Blocked by auth policy")
+                    </div>
+                    <p class="text-xs text-orange-500/80">This request was denied before being forwarded to the upstream.</p>
+                </div>
+            </div>
+        }
+
         <div class="rounded-lg border border-gray-700 bg-gray-900 p-5">
             <div class="flex flex-wrap items-center gap-3">
                 <span class="rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(_entry.Method)">@_entry.Method</span>
@@ -42,24 +55,35 @@ else
                     <div class="text-xs text-gray-500">Target</div>
                     <div class="mt-1 font-mono text-sm text-gray-200">@(_entry.TargetDurationMs.HasValue ? $"{_entry.TargetDurationMs} ms" : "-")</div>
                 </div>
-                <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                <div class="rounded border @(IsProxyDenied ? "border-orange-800 bg-orange-950/20" : "border-gray-800 bg-gray-950") p-3">
                     <div class="text-xs text-gray-500">Origin</div>
-                    <div class="mt-1 font-mono text-sm @(IsProxyDeniedByEnforcedAuth ? "text-red-300" : "text-gray-200")">@ResponseOrigin</div>
+                    <div class="mt-1 font-mono text-sm @(IsProxyDenied ? "text-orange-300" : "text-gray-200")">@ResponseOrigin</div>
                     <div class="mt-1 text-xs text-gray-600">@ResponseOriginDetail</div>
                 </div>
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Route</div>
                     <div class="mt-1 truncate font-mono text-sm text-gray-200">@(_matchedRoute?.Path ?? "-")</div>
-                    @if (_matchedRoute?.Auth?.Enforced == true)
+                    @if (_matchedRoute?.Auth?.Enforced == true || _matchedRoute?.Ips.Count > 0)
                     {
-                        <div class="mt-1">
-                            <span class="rounded border border-emerald-700 px-1.5 py-0.5 font-mono text-xs text-emerald-400">enforced</span>
+                        <div class="mt-1 flex flex-wrap gap-1">
+                            @if (_matchedRoute?.Auth?.Enforced == true)
+                            {
+                                <span class="rounded border border-emerald-700 px-1.5 py-0.5 font-mono text-xs text-emerald-400">auth</span>
+                            }
+                            @if (_matchedRoute?.Ips.Count > 0)
+                            {
+                                <span class="rounded border border-sky-700 px-1.5 py-0.5 font-mono text-xs text-sky-400">ip</span>
+                            }
                         </div>
                     }
                 </div>
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Host</div>
                     <div class="mt-1 truncate font-mono text-sm text-gray-200">@_entry.Host</div>
+                </div>
+                <div class="rounded border border-gray-800 bg-gray-950 p-3">
+                    <div class="text-xs text-gray-500">IP</div>
+                    <div class="mt-1 truncate font-mono text-sm text-gray-200">@(_entry.ClientIp ?? "-")</div>
                 </div>
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Scheme</div>

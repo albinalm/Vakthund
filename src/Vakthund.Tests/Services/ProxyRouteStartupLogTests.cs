@@ -22,6 +22,8 @@ public class ProxyRouteStartupLogTests
         Assert.Equal("http://localhost:5001", entry.UpstreamBase);
         Assert.Equal("/logs/**", entry.UpstreamPath);
         Assert.Null(entry.RewritePath);
+        Assert.Null(entry.Timeout);
+        Assert.Empty(entry.Ips);
     }
 
     [Fact]
@@ -56,5 +58,37 @@ public class ProxyRouteStartupLogTests
 
         Assert.Equal("/internal/health", entry.UpstreamPath);
         Assert.Equal("/internal/health", entry.RewritePath);
+    }
+
+    [Fact]
+    public void BuildEntries_IncludesTimeout_WhenRouteHasTimeout()
+    {
+        ProxyRouteLogEntry entry = Assert.Single(ProxyRouteStartupLog.BuildEntries(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000",
+                Timeout = "1h"
+            }
+        ]));
+
+        Assert.Equal("1h", entry.Timeout);
+    }
+
+    [Fact]
+    public void BuildEntries_IncludesIps_WhenRouteHasIpWhitelist()
+    {
+        ProxyRouteLogEntry entry = Assert.Single(ProxyRouteStartupLog.BuildEntries(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "http://localhost:5000",
+                Ips = ["203.0.113.*"]
+            }
+        ]));
+
+        Assert.Equal(["203.0.113.*"], entry.Ips);
     }
 }

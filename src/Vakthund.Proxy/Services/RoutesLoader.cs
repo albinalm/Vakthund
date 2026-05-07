@@ -12,6 +12,7 @@ public static class RoutesLoader
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithTypeConverter(new RouteAuthDefinitionConverter())
+        .WithTypeConverter(new RouteIpDefinitionConverter())
         .IgnoreUnmatchedProperties()
         .Build();
 
@@ -25,12 +26,15 @@ public static class RoutesLoader
         string yaml = File.ReadAllText(filePath);
         var file = Deserializer.Deserialize<RoutesFileDefinition>(yaml);
         Dictionary<string, AuthExpectation> namedAuths = BuildNamedAuths(file.Auths);
+        Dictionary<string, List<string>> namedIps = BuildNamedIps(file.IpPolicies);
         List<VakthundRoute> routes = file.Routes
             .Select(route => new VakthundRoute
             {
                 Path = route.Path,
                 Target = route.Target,
                 To = route.To,
+                Timeout = route.Timeout,
+                Ips = ResolveIps(route.Ips, namedIps, route.Path),
                 Auth = ResolveAuth(route.Auth, namedAuths, route.Path)
             })
             .ToList();
@@ -44,7 +48,7 @@ public static class RoutesLoader
 
         foreach (NamedAuthExpectation auth in auths)
         {
-            string? name = auth.Name?.Trim();
+            string? name = auth.Name.Trim();
             if (string.IsNullOrWhiteSpace(name))
             {
                 throw new InvalidOperationException("Routes file auths entries must define a non-empty name.");
@@ -57,6 +61,56 @@ public static class RoutesLoader
         }
 
         return namedAuths;
+    }
+
+    private static Dictionary<string, List<string>> BuildNamedIps(IEnumerable<IpPolicy> ips)
+    {
+        var namedIps = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (IpPolicy ipList in ips)
+        {
+            string? name = ipList.Name.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new InvalidOperationException("Routes file ipPolicies entries must define a non-empty name.");
+            }
+
+            if (!namedIps.TryAdd(name, ipList.Entries))
+            {
+                throw new InvalidOperationException($"Routes file defines duplicate ip policy name '{name}'.");
+            }
+        }
+
+        return namedIps;
+    }
+
+    private static List<string> ResolveIps(
+        RouteIpDefinition? routeIps,
+        IReadOnlyDictionary<string, List<string>> namedIps,
+        string routePath)
+    {
+        if (routeIps is null)
+        {
+            return [];
+        }
+
+        if (routeIps.Inline is { } inlineIps)
+        {
+            return [.. inlineIps];
+        }
+
+        string? name = routeIps.Reference?.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new InvalidOperationException($"Route '{routePath}' has an empty ip reference.");
+        }
+
+        if (!namedIps.TryGetValue(name, out List<string>? namedIpList))
+        {
+            throw new InvalidOperationException($"Route '{routePath}' references unknown ip policy '{name}'. Define it under ipPolicies.");
+        }
+
+        return [.. namedIpList];
     }
 
     private static AuthExpectation? ResolveAuth(
@@ -90,16 +144,16 @@ public static class RoutesLoader
 
     private static AuthExpectation CloneAuth(AuthExpectation auth)
     {
-        JweDecryptionConfig jwe = auth.Jwe ?? new JweDecryptionConfig();
+        JweDecryptionConfig jwe = auth.Jwe;
 
         return new AuthExpectation
         {
             Enforced = auth.Enforced,
             Issuer = auth.Issuer,
             Audience = auth.Audience,
-            Audiences = auth.Audiences is null ? [] : [.. auth.Audiences],
-            Scopes = auth.Scopes is null ? [] : [.. auth.Scopes],
-            Roles = auth.Roles is null ? [] : [.. auth.Roles],
+            Audiences = [.. auth.Audiences],
+            Scopes = [.. auth.Scopes],
+            Roles = [.. auth.Roles],
             OpenIdConfigurationUrl = auth.OpenIdConfigurationUrl,
             JwksUrl = auth.JwksUrl,
             Jwe = new JweDecryptionConfig
@@ -113,7 +167,14 @@ public static class RoutesLoader
     private sealed class RoutesFileDefinition
     {
         public List<NamedAuthExpectation> Auths { get; set; } = [];
+        public List<IpPolicy> IpPolicies { get; set; } = [];
         public List<RouteDefinition> Routes { get; set; } = [];
+    }
+
+    private sealed class IpPolicy
+    {
+        public string Name { get; set; } = "";
+        public List<string> Entries { get; set; } = [];
     }
 
     private sealed class NamedAuthExpectation : AuthExpectation
@@ -126,13 +187,48 @@ public static class RoutesLoader
         public string Path { get; init; } = "";
         public string Target { get; init; } = "";
         public string To { get; init; } = "";
+        public string Timeout { get; init; } = "";
+        public RouteIpDefinition? Ips { get; init; }
         public RouteAuthDefinition? Auth { get; init; }
+    }
+
+    private sealed class RouteIpDefinition
+    {
+        public string? Reference { get; init; }
+        public List<string>? Inline { get; init; }
     }
 
     private sealed class RouteAuthDefinition
     {
         public string? Reference { get; init; }
         public AuthExpectation? Inline { get; init; }
+    }
+
+    private sealed class RouteIpDefinitionConverter : IYamlTypeConverter
+    {
+        public bool Accepts(Type type) => type == typeof(RouteIpDefinition);
+
+        public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+        {
+            if (parser.Current is Scalar)
+            {
+                Scalar scalar = parser.Consume<Scalar>();
+                return new RouteIpDefinition { Reference = scalar.Value };
+            }
+
+            if (parser.Current is SequenceStart)
+            {
+                var entries = (List<string>?)rootDeserializer(typeof(List<string>));
+                return new RouteIpDefinition { Inline = entries ?? [] };
+            }
+
+            throw new InvalidOperationException("Route ips must be either a named ip reference or a list of ip entries.");
+        }
+
+        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
+        {
+            throw new NotSupportedException("Routes files are only deserialized.");
+        }
     }
 
     private sealed class RouteAuthDefinitionConverter : IYamlTypeConverter

@@ -40,6 +40,7 @@ public class AuditDiskStoreTests : IDisposable
             Path = "/api/test",
             Query = "?foo=bar",
             Method = "POST",
+            ClientIp = "203.0.113.42",
             Headers = new Dictionary<string, string> { ["Authorization"] = "Bearer token" },
             Cookies = new Dictionary<string, string> { ["session"] = "abc" },
             Queries = new Dictionary<string, string> { ["foo"] = "bar" },
@@ -49,7 +50,8 @@ public class AuditDiskStoreTests : IDisposable
             ResponseBody = """{"result":"ok"}""",
             StatusCode = 200,
             TargetDurationMs = 500,
-            DurationMs = 123
+            DurationMs = 123,
+            Upstreamed = true
         };
 
         Store().Add(entry);
@@ -63,6 +65,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal(entry.Path, result.Path);
         Assert.Equal(entry.Query, result.Query);
         Assert.Equal(entry.Method, result.Method);
+        Assert.Equal(entry.ClientIp, result.ClientIp);
         Assert.Equal(entry.Headers, result.Headers);
         Assert.Equal(entry.Cookies, result.Cookies);
         Assert.Equal(entry.Queries, result.Queries);
@@ -73,6 +76,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal(entry.StatusCode, result.StatusCode);
         Assert.Equal(entry.TargetDurationMs, result.TargetDurationMs);
         Assert.Equal(entry.DurationMs, result.DurationMs);
+        Assert.True(result.Upstreamed);
     }
 
     [Fact]
@@ -86,6 +90,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.NotNull(result);
         Assert.Null(result.Host);
         Assert.Null(result.Query);
+        Assert.Null(result.ClientIp);
         Assert.Null(result.ContentType);
         Assert.Null(result.Body);
         Assert.Null(result.ResponseContentType);
@@ -103,6 +108,8 @@ public class AuditDiskStoreTests : IDisposable
         {
             Path = "/api/**",
             Target = "https://backend.internal",
+            Timeout = "1h",
+            Ips = ["203.0.113.*"],
             Auth = new AuthExpectation
             {
                 Issuer = "https://auth.example.com",
@@ -118,6 +125,8 @@ public class AuditDiskStoreTests : IDisposable
         Assert.NotNull(result?.MatchedRoute);
         Assert.Equal("/api/**", result.MatchedRoute.Path);
         Assert.Equal("https://backend.internal", result.MatchedRoute.Target);
+        Assert.Equal("1h", result.MatchedRoute.Timeout);
+        Assert.Equal(["203.0.113.*"], result.MatchedRoute.Ips);
         Assert.NotNull(result.MatchedRoute.Auth);
         Assert.Equal("https://auth.example.com", result.MatchedRoute.Auth.Issuer);
         Assert.Equal("my-api", result.MatchedRoute.Auth.Audience);
@@ -182,6 +191,23 @@ public class AuditDiskStoreTests : IDisposable
     }
 
     [Fact]
+    public void StatusCounts_ExcludesNonUpstreamedEntries()
+    {
+        AuditDiskStore store = Store();
+        store.AddRange([
+            Entry(statusCode: 200, upstreamed: true),
+            Entry(statusCode: 401, upstreamed: false),
+            Entry(statusCode: 403, upstreamed: false)
+        ]);
+
+        IReadOnlyDictionary<int, int> statusCounts = store.StatusCounts;
+
+        Assert.Equal(1, statusCounts[200]);
+        Assert.False(statusCounts.ContainsKey(401));
+        Assert.False(statusCounts.ContainsKey(403));
+    }
+
+    [Fact]
     public void Latest_ReturnsMostRecentEntry()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -235,6 +261,47 @@ public class AuditDiskStoreTests : IDisposable
     }
 
     [Fact]
+    public void EnsureCreated_MigratesExistingDatabaseWithoutUpstreamed()
+    {
+        using (SqliteConnection conn = new($"Data Source={_dbPath}"))
+        {
+            conn.Open();
+            using SqliteCommand cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                              CREATE TABLE AuditEntries (
+                                  Id TEXT NOT NULL PRIMARY KEY,
+                                  Timestamp TEXT NOT NULL,
+                                  Scheme TEXT NOT NULL,
+                                  Host TEXT NULL,
+                                  Path TEXT NOT NULL,
+                                  Query TEXT NULL,
+                                  Method TEXT NOT NULL,
+                                  ClientIp TEXT NULL,
+                                  HeadersJson TEXT NOT NULL,
+                                  CookiesJson TEXT NOT NULL,
+                                  QueriesJson TEXT NOT NULL,
+                                  ContentType TEXT NULL,
+                                  Body TEXT NULL,
+                                  ResponseContentType TEXT NULL,
+                                  ResponseBody TEXT NULL,
+                                  StatusCode INTEGER NULL,
+                                  TargetDurationMs INTEGER NULL,
+                                  DurationMs INTEGER NOT NULL,
+                                  MatchedRouteJson TEXT NULL
+                              );
+                              INSERT INTO AuditEntries (Id, Timestamp, Scheme, Path, Method, HeadersJson, CookiesJson, QueriesJson, DurationMs)
+                              VALUES ('00000000-0000-0000-0000-000000000001', '2024-01-01T00:00:00+00:00', 'https', '/legacy', 'GET', '{}', '{}', '{}', 0);
+                              """;
+            cmd.ExecuteNonQuery();
+        }
+
+        AuditEntry? legacy = Store().Get(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+        Assert.NotNull(legacy);
+        Assert.True(legacy.Upstreamed);
+    }
+
+    [Fact]
     public void EnsureCreated_MigratesExistingDatabaseWithoutMatchedRouteJson()
     {
         using (SqliteConnection conn = new($"Data Source={_dbPath}"))
@@ -266,19 +333,22 @@ public class AuditDiskStoreTests : IDisposable
         }
 
         AuditEntry entry = Entry();
+        entry.ClientIp = "203.0.113.42";
         entry.MatchedRoute = new ProxyRouteInfo { Path = "/api/**", Target = "https://backend" };
         AuditDiskStore store = Store();
 
         store.Add(entry);
 
         Assert.Equal("/api/**", store.Get(entry.Id)?.MatchedRoute?.Path);
+        Assert.Equal("203.0.113.42", store.Get(entry.Id)?.ClientIp);
     }
 
     private static AuditEntry Entry(
         DateTimeOffset? timestamp = null,
         string path = "/api",
         Guid? id = null,
-        int? statusCode = null) =>
+        int? statusCode = null,
+        bool upstreamed = true) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -287,6 +357,7 @@ public class AuditDiskStoreTests : IDisposable
             Host = null,
             Path = path,
             Method = "GET",
-            StatusCode = statusCode
+            StatusCode = statusCode,
+            Upstreamed = upstreamed
         };
 }
