@@ -1,6 +1,5 @@
 using Radzen;
 using Vakthund.UI.Enums;
-using Vakthund.UI.Helpers;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
 using Vakthund.UI.Services.Interfaces;
