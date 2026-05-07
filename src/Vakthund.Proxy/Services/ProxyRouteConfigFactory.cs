@@ -209,5 +209,4 @@ public static class ProxyRouteConfigFactory
         return path.Length > 1 ? path.TrimEnd('/') : path;
     }
 
-    private sealed record RouteTimeout(TimeSpan? Value, string? Policy);
 }

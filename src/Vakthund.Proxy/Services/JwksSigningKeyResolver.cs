@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.IdentityModel.Tokens;
+using Vakthund.Proxy.Models;
 
 namespace Vakthund.Proxy.Services;
 
@@ -10,12 +11,12 @@ public static class JwksSigningKeyResolver
         Timeout = TimeSpan.FromSeconds(10)
     };
 
-    private static readonly ConcurrentDictionary<string, CacheEntry> Cache = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, JwksSigningKeyCacheEntry> Cache = new(StringComparer.Ordinal);
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
 
     public static IReadOnlyCollection<SecurityKey> Resolve(string jwksUrl)
     {
-        if (Cache.TryGetValue(jwksUrl, out CacheEntry? entry) && entry.ExpiresAt > DateTimeOffset.UtcNow)
+        if (Cache.TryGetValue(jwksUrl, out JwksSigningKeyCacheEntry? entry) && entry.ExpiresAt > DateTimeOffset.UtcNow)
         {
             return entry.Keys;
         }
@@ -29,9 +30,7 @@ public static class JwksSigningKeyResolver
             throw new SecurityTokenInvalidSigningKeyException($"No signing keys were returned from {jwksUrl}.");
         }
 
-        Cache[jwksUrl] = new CacheEntry(keys, DateTimeOffset.UtcNow.Add(CacheDuration));
+        Cache[jwksUrl] = new JwksSigningKeyCacheEntry(keys, DateTimeOffset.UtcNow.Add(CacheDuration));
         return keys;
     }
-
-    private sealed record CacheEntry(IReadOnlyCollection<SecurityKey> Keys, DateTimeOffset ExpiresAt);
 }

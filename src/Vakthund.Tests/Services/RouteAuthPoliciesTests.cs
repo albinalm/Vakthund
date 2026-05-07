@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Services;
 using Vakthund.Shared.Models;
@@ -30,7 +31,12 @@ public class RouteAuthPoliciesTests
                     Audience = "orders-api",
                     Scopes = ["orders.read"],
                     Roles = ["admin"],
-                    JwksUrl = "https://issuer.example/jwks"
+                    JwksUrl = "https://issuer.example/jwks",
+                    Jwe = new JweDecryptionConfig
+                    {
+                        KeyType = JweKeyType.Symmetric,
+                        Key = Convert.ToBase64String(new byte[32])
+                    }
                 }
             }
         ]);
@@ -49,6 +55,35 @@ public class RouteAuthPoliciesTests
         Assert.Contains("orders-api", jwtOptions.TokenValidationParameters.ValidAudiences);
         Assert.True(jwtOptions.TokenValidationParameters.ValidateLifetime);
         Assert.NotNull(jwtOptions.TokenValidationParameters.IssuerSigningKeyResolver);
+        SymmetricSecurityKey decryptionKey = Assert.IsType<SymmetricSecurityKey>(jwtOptions.TokenValidationParameters.TokenDecryptionKey);
+        Assert.Equal(32, decryptionKey.KeySize / 8);
+    }
+
+    [Fact]
+    public void AddRouteAuthentication_RejectsPartialJweConfig_ForEnforcedRoute()
+    {
+        var services = new ServiceCollection();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => services.AddRouteAuthentication(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "https://backend.example",
+                Auth = new AuthExpectation
+                {
+                    Enforced = true,
+                    Issuer = "https://issuer.example",
+                    JwksUrl = "https://issuer.example/jwks",
+                    Jwe = new JweDecryptionConfig
+                    {
+                        KeyType = JweKeyType.Symmetric
+                    }
+                }
+            }
+        ]));
+
+        Assert.Contains("keyType and key", exception.Message);
     }
 
     [Fact]

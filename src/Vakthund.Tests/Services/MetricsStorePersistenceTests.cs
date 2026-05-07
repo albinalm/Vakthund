@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
 using Vakthund.UI.Enums;
+using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
 

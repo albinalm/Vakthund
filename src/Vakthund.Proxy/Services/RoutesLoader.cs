@@ -1,7 +1,6 @@
+using Vakthund.Proxy.Helpers;
 using Vakthund.Proxy.Models;
 using Vakthund.Shared.Models;
-using YamlDotNet.Core;
-using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -163,97 +162,4 @@ public static class RoutesLoader
         };
     }
 
-    private sealed class RoutesFileDefinition
-    {
-        public List<NamedAuthExpectation> Auths { get; set; } = [];
-        public List<IpPolicy> IpPolicies { get; set; } = [];
-        public List<RouteDefinition> Routes { get; set; } = [];
-    }
-
-    private sealed class IpPolicy
-    {
-        public string? Name { get; set; }
-        public List<string> Entries { get; set; } = [];
-    }
-
-    private sealed class NamedAuthExpectation : AuthExpectation
-    {
-        public string? Name { get; set; }
-    }
-
-    private sealed class RouteDefinition
-    {
-        public string Path { get; init; } = "";
-        public string Target { get; init; } = "";
-        public string To { get; init; } = "";
-        public string Timeout { get; init; } = "";
-        public RouteIpDefinition? Ips { get; init; }
-        public RouteAuthDefinition? Auth { get; init; }
-    }
-
-    private sealed class RouteIpDefinition
-    {
-        public string? Reference { get; init; }
-        public List<string>? Inline { get; init; }
-    }
-
-    private sealed class RouteAuthDefinition
-    {
-        public string? Reference { get; init; }
-        public AuthExpectation? Inline { get; init; }
-    }
-
-    private sealed class RouteIpDefinitionConverter : IYamlTypeConverter
-    {
-        public bool Accepts(Type type) => type == typeof(RouteIpDefinition);
-
-        public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
-        {
-            if (parser.Current is Scalar)
-            {
-                Scalar scalar = parser.Consume<Scalar>();
-                return new RouteIpDefinition { Reference = scalar.Value };
-            }
-
-            if (parser.Current is SequenceStart)
-            {
-                var entries = (List<string>?)rootDeserializer(typeof(List<string>));
-                return new RouteIpDefinition { Inline = entries ?? [] };
-            }
-
-            throw new InvalidOperationException("Route ips must be either a named ip reference or a list of ip entries.");
-        }
-
-        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
-        {
-            throw new NotSupportedException("Routes files are only deserialized.");
-        }
-    }
-
-    private sealed class RouteAuthDefinitionConverter : IYamlTypeConverter
-    {
-        public bool Accepts(Type type) => type == typeof(RouteAuthDefinition);
-
-        public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
-        {
-            if (parser.Current is Scalar)
-            {
-                Scalar scalar = parser.Consume<Scalar>();
-                return new RouteAuthDefinition { Reference = scalar.Value };
-            }
-
-            if (parser.Current is MappingStart)
-            {
-                var auth = (AuthExpectation?)rootDeserializer(typeof(AuthExpectation));
-                return new RouteAuthDefinition { Inline = auth };
-            }
-
-            throw new InvalidOperationException("Route auth must be either a named auth reference or an auth object.");
-        }
-
-        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
-        {
-            throw new NotSupportedException("Routes files are only deserialized.");
-        }
-    }
 }

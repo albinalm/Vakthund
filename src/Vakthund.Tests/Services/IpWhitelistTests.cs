@@ -1,3 +1,4 @@
+using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Services;
 
 namespace Vakthund.Tests.Services;
@@ -12,7 +13,7 @@ public class IpWhitelistTests
     [InlineData("2001:db8::1", "2001:db8::/32")]
     public void Allows_ReturnsTrue_WhenClientIpMatches(string clientIp, string entry)
     {
-        IReadOnlyList<IpWhitelist.IpRange> ranges = IpWhitelist.Parse([entry], "/api/**");
+        IReadOnlyList<IpRange> ranges = IpWhitelist.Parse([entry], "/api/**");
 
         Assert.True(IpWhitelist.Allows(clientIp, ranges));
     }
@@ -23,7 +24,7 @@ public class IpWhitelistTests
     [InlineData("2001:db9::1", "2001:db8::/32")]
     public void Allows_ReturnsFalse_WhenClientIpDoesNotMatch(string clientIp, string entry)
     {
-        IReadOnlyList<IpWhitelist.IpRange> ranges = IpWhitelist.Parse([entry], "/api/**");
+        IReadOnlyList<IpRange> ranges = IpWhitelist.Parse([entry], "/api/**");
 
         Assert.False(IpWhitelist.Allows(clientIp, ranges));
     }

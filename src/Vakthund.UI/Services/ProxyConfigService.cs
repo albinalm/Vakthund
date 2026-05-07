@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Vakthund.Shared.Models;
+using Vakthund.UI.Models;
 
 namespace Vakthund.UI.Services;
 
@@ -37,10 +38,4 @@ public class ProxyConfigService(IHttpClientFactory httpClientFactory)
     }
 
     private static string FormatEndpoint(Uri? baseAddress) => baseAddress?.ToString().TrimEnd('/') ?? "the configured proxy URL";
-}
-
-public sealed record ProxyConfigLoadResult(ProxyConfig? Config, string? ErrorMessage, string? ErrorDetail)
-{
-    public static ProxyConfigLoadResult Success(ProxyConfig config) => new(config, null, null);
-    public static ProxyConfigLoadResult Failed(string message, string? detail = null) => new(null, message, detail);
 }

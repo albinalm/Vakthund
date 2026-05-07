@@ -2,7 +2,7 @@
 @using Vakthund.Shared.Models
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<div class="mx-auto max-w-7xl space-y-4 px-6 py-6">
+<div class="requests-page-shell mx-auto space-y-4 px-6 py-6">
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="font-display text-2xl font-semibold text-gray-100">Requests</h1>
@@ -78,7 +78,7 @@
                         PagerAlwaysVisible="true" AllowFiltering="true" AllowGrouping="true"
                         AllowColumnPicking="true" ColumnsPickerAllowFiltering="true">
             <Columns>
-                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Select" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Pickable="false" Width="48px">
+                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Select" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Pickable="false" Width="52px">
                     <HeaderTemplate>
                         <RadzenCheckBox TValue="bool"
                                         TriState="false"
@@ -93,31 +93,30 @@
                                         @onclick:stopPropagation="true"/>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Open" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Pickable="false" Width="56px">
+                <RadzenDataGridColumn TItem="AuditEntry" UniqueID="Open" Sortable="false" Filterable="false" Groupable="false" Reorderable="false" Pickable="false" Width="64px">
                     <Template Context="entry">
                         <a href="request/@entry.Id" class="flex items-center justify-center text-amber-600 transition-colors hover:text-amber-400" title="Open">
                             <span class="material-symbols-outlined text-lg">open_in_new</span>
                         </a>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="Timestamp" Title="Time" Width="150px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Timestamp" Title="Time" Width="165px">
                     <Template Context="entry">
                         <span
                             class="font-mono text-xs text-gray-400">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="Method" Title="Method" Width="110px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Method" Title="Method" Width="120px">
                     <Template Context="entry">
                         <span class="w-fit rounded px-2 py-1 text-xs font-bold text-white @HttpStyle.MethodColor(entry.Method)">@entry.Method</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="StatusCode" Title="Status" Width="95px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="StatusCode" Title="Status" Width="115px">
                     <Template Context="entry">
                         <span class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(entry.StatusCode)">@entry.StatusCode</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="Upstreamed" Title="Forwarded" Width="110px"
-                                      FilterValue="true" FilterOperator="FilterOperator.Equals">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Upstreamed" Title="Forwarded" Width="145px">
                     <Template Context="entry">
                         @if (entry.Upstreamed)
                         {
@@ -129,17 +128,17 @@
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="Host" Title="Host" Width="180px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Host" Title="Host" Width="260px">
                     <Template Context="entry">
-                        <span class="font-mono text-sm text-gray-300">@entry.Host</span>
+                        <span class="block truncate font-mono text-sm text-gray-300" title="@entry.Host">@entry.Host</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="ClientIp" Title="IP" Width="150px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="ClientIp" Title="IP" Width="185px">
                     <Template Context="entry">
-                        <span class="font-mono text-sm text-gray-300">@(entry.ClientIp ?? "-")</span>
+                        <span class="block truncate font-mono text-sm text-gray-300" title="@entry.ClientIp">@(entry.ClientIp ?? "-")</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Title="Target">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="Path" Title="Path" Width="520px">
                     <Template Context="entry">
                         <div class="min-w-0">
                             <div class="truncate font-mono text-sm text-gray-100">@entry.Path</div>
@@ -150,12 +149,12 @@
                         </div>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="DurationMs" Title="Duration" Width="110px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="DurationMs" Title="Duration" Width="135px">
                     <Template Context="entry">
                         <span class="font-mono text-sm text-gray-300">@entry.DurationMs ms</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AuditEntry" Property="TargetDurationMs" Title="Target" Width="110px">
+                <RadzenDataGridColumn TItem="AuditEntry" Property="TargetDurationMs" Title="Upstream" Width="135px">
                     <Template Context="entry">
                         <span
                             class="font-mono text-sm text-gray-300">@(entry.TargetDurationMs.HasValue ? $"{entry.TargetDurationMs} ms" : "-")</span>

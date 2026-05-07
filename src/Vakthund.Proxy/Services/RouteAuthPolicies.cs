@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -91,6 +93,11 @@ public static class RouteAuthPolicies
             RoleClaimType = "roles"
         };
 
+        if (TryBuildTokenDecryptionKey(auth.Jwe, out SecurityKey? decryptionKey))
+        {
+            options.TokenValidationParameters.TokenDecryptionKey = decryptionKey;
+        }
+
         if (!string.IsNullOrWhiteSpace(auth.JwksUrl))
         {
             options.TokenValidationParameters.IssuerSigningKeyResolver = (_, _, _, _) =>
@@ -136,7 +143,7 @@ public static class RouteAuthPolicies
                 policy.AuthenticationSchemes.Add(IpSchemeName);
             }
 
-            IReadOnlyList<IpWhitelist.IpRange> ranges = IpWhitelist.Parse(route.Ips, route.Path);
+            IReadOnlyList<IpRange> ranges = IpWhitelist.Parse(route.Ips, route.Path);
             policy.RequireAssertion(context =>
                 context.Resource is HttpContext httpContext &&
                 IpWhitelist.Allows(ClientIpResolver.Resolve(httpContext), ranges));
@@ -153,6 +160,7 @@ public static class RouteAuthPolicies
         foreach ((VakthundRoute route, _) in EnforcedRoutes(routes))
         {
             AuthExpectation auth = route.Auth!;
+            ValidateJweConfig(auth.Jwe);
             if (HasSigningKeySource(auth))
             {
                 continue;
@@ -160,7 +168,20 @@ public static class RouteAuthPolicies
 
             throw new InvalidOperationException(
                 $"Route '{route.Path}' has auth.enforced set to true, but no signing key source. " +
-                "Set auth.jwksUrl, auth.openIdConfigurationUrl, or an absolute auth.issuer for OIDC discovery.");
+            "Set auth.jwksUrl, auth.openIdConfigurationUrl, or an absolute auth.issuer for OIDC discovery.");
+        }
+    }
+
+    private static void ValidateJweConfig(JweDecryptionConfig? jwe)
+    {
+        if (jwe is null || (!jwe.KeyType.HasValue && string.IsNullOrWhiteSpace(jwe.Key)))
+        {
+            return;
+        }
+
+        if (!jwe.KeyType.HasValue || string.IsNullOrWhiteSpace(jwe.Key))
+        {
+            throw new InvalidOperationException("Enforced route auth.jwe must define both keyType and key.");
         }
     }
 
@@ -168,6 +189,42 @@ public static class RouteAuthPolicies
         !string.IsNullOrWhiteSpace(auth.JwksUrl) ||
         !string.IsNullOrWhiteSpace(auth.OpenIdConfigurationUrl) ||
         IsHttpUri(auth.Issuer);
+
+    private static bool TryBuildTokenDecryptionKey(JweDecryptionConfig? jwe, out SecurityKey? key)
+    {
+        key = null;
+        if (jwe is null || (!jwe.KeyType.HasValue && string.IsNullOrWhiteSpace(jwe.Key)))
+        {
+            return false;
+        }
+
+        JweKeyType keyType = jwe.KeyType!.Value;
+        string keyValue = jwe.Key!;
+
+        key = keyType switch
+        {
+            JweKeyType.Rsa => new RsaSecurityKey(LoadRsaKey(keyValue)),
+            JweKeyType.Ec => new ECDsaSecurityKey(LoadEcKey(keyValue)),
+            JweKeyType.Symmetric => new SymmetricSecurityKey(Convert.FromBase64String(keyValue)),
+            JweKeyType.Password => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue)),
+            _ => throw new InvalidOperationException($"Unknown JWE key type: {keyType}")
+        };
+        return true;
+    }
+
+    private static RSA LoadRsaKey(string pem)
+    {
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(pem);
+        return rsa;
+    }
+
+    private static ECDsa LoadEcKey(string pem)
+    {
+        var ec = ECDsa.Create();
+        ec.ImportFromPem(pem);
+        return ec;
+    }
 
     private static bool IsHttpUri(string? value) =>
         Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) &&

@@ -292,9 +292,10 @@ public class RoutesLoaderTests
         {
             VakthundRoute route = Assert.Single(RoutesLoader.TryLoad(filePath)!);
 
-            Assert.NotNull(route.Auth);
-            Assert.Equal(JweKeyType.Symmetric, route.Auth.Jwe.KeyType);
-            Assert.Equal("base64-key", route.Auth.Jwe.Key);
+            AuthExpectation auth = Assert.IsType<AuthExpectation>(route.Auth);
+            JweDecryptionConfig jwe = Assert.IsType<JweDecryptionConfig>(auth.Jwe);
+            Assert.Equal(JweKeyType.Symmetric, jwe.KeyType);
+            Assert.Equal("base64-key", jwe.Key);
         }
         finally
         {

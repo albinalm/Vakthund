@@ -127,12 +127,13 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal("https://backend.internal", result.MatchedRoute.Target);
         Assert.Equal("1h", result.MatchedRoute.Timeout);
         Assert.Equal(["203.0.113.*"], result.MatchedRoute.Ips);
-        Assert.NotNull(result.MatchedRoute.Auth);
-        Assert.Equal("https://auth.example.com", result.MatchedRoute.Auth.Issuer);
-        Assert.Equal("my-api", result.MatchedRoute.Auth.Audience);
-        Assert.Equal(["read:users"], result.MatchedRoute.Auth.Scopes);
-        Assert.Equal(JweKeyType.Symmetric, result.MatchedRoute.Auth.Jwe.KeyType);
-        Assert.Equal("secret", result.MatchedRoute.Auth.Jwe.Key);
+        AuthExpectation auth = Assert.IsType<AuthExpectation>(result.MatchedRoute.Auth);
+        JweDecryptionConfig jwe = Assert.IsType<JweDecryptionConfig>(auth.Jwe);
+        Assert.Equal("https://auth.example.com", auth.Issuer);
+        Assert.Equal("my-api", auth.Audience);
+        Assert.Equal(["read:users"], auth.Scopes);
+        Assert.Equal(JweKeyType.Symmetric, jwe.KeyType);
+        Assert.Equal("secret", jwe.Key);
     }
 
     [Fact]

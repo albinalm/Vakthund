@@ -386,3 +386,8 @@ html:not(.dark) .rz-paginator-page.rz-state-active {
     color: var(--color-amber-400);
     animation: btn-glow 2s ease-in-out infinite;
 }
+
+.requests-page-shell {
+    width: 100%;
+    max-width: min(calc(100vw - 3rem), 180rem);
+}

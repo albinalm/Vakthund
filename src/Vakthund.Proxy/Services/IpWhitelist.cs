@@ -1,4 +1,5 @@
 using System.Net;
+using Vakthund.Proxy.Models;
 
 namespace Vakthund.Proxy.Services;
 
@@ -118,45 +119,9 @@ public static class IpWhitelist
     private static InvalidOperationException InvalidEntry(string value, string routePath) =>
         new($"Route '{routePath}' has invalid ip whitelist entry '{value}'. Use an IP address, CIDR range, or trailing IPv4 wildcard.");
 
-    private static IPAddress Normalize(IPAddress address) =>
+    internal static IPAddress Normalize(IPAddress address) =>
         address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
 
     private static int PrefixLength(IPAddress address) =>
         address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
-
-    public sealed class IpRange(IPAddress network, int prefixLength)
-    {
-        private readonly IPAddress _network = network;
-        private readonly int _prefixLength = prefixLength;
-
-        public bool Contains(IPAddress address)
-        {
-            IPAddress normalized = Normalize(address);
-            byte[] networkBytes = _network.GetAddressBytes();
-            byte[] addressBytes = normalized.GetAddressBytes();
-            if (networkBytes.Length != addressBytes.Length)
-            {
-                return false;
-            }
-
-            int fullBytes = _prefixLength / 8;
-            int remainingBits = _prefixLength % 8;
-
-            for (int i = 0; i < fullBytes; i++)
-            {
-                if (networkBytes[i] != addressBytes[i])
-                {
-                    return false;
-                }
-            }
-
-            if (remainingBits == 0)
-            {
-                return true;
-            }
-
-            int mask = 0xff << (8 - remainingBits);
-            return (networkBytes[fullBytes] & mask) == (addressBytes[fullBytes] & mask);
-        }
-    }
 }

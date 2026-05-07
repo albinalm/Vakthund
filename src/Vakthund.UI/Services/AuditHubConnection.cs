@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Vakthund.Shared.Models;
+using Vakthund.UI.Helpers;
+using Vakthund.UI.Models;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services.Interfaces;
 
@@ -145,18 +147,4 @@ public class AuditHubConnection : IAsyncDisposable
         _metricsStore.AddRange(entries);
         Requests?.Invoke(entries);
     }
-}
-
-file class InfiniteRetryPolicy : IRetryPolicy
-{
-    private static readonly TimeSpan[] Defaults =
-    [
-        TimeSpan.Zero,
-        TimeSpan.FromSeconds(2),
-        TimeSpan.FromSeconds(10),
-        TimeSpan.FromSeconds(30)
-    ];
-
-    public TimeSpan? NextRetryDelay(RetryContext retryContext) =>
-        Defaults[Math.Min(retryContext.PreviousRetryCount, Defaults.Length - 1)];
 }
