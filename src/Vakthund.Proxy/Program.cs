@@ -7,6 +7,7 @@ builder.AddVakthundProxy();
 
 WebApplication app = builder.Build();
 
+app.LogProxyRoutes();
 app.ConfigureUrls(builder.Configuration);
 app.MapManagementEndpoints(builder.Configuration);
 app.UseProxyPipeline(builder.Configuration);

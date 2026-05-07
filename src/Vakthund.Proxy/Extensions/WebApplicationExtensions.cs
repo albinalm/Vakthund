@@ -73,6 +73,17 @@ public static class WebApplicationExtensions
         return app;
     }
 
+    public static WebApplication LogProxyRoutes(this WebApplication app)
+    {
+        var routes = app.Services.GetRequiredService<IReadOnlyList<VakthundRoute>>();
+        ILogger logger = app.Services
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Vakthund.Proxy.Routes");
+
+        ProxyRouteStartupLog.Log(logger, routes);
+        return app;
+    }
+
     public static WebApplication UseProxyPipeline(this WebApplication app, IConfiguration config)
     {
         int managementPort = config.GetValue("Management:Port", 8081);
