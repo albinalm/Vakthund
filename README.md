@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://github.com/albinalm/Vakthund/actions/workflows/qa.yml"><img src="https://github.com/albinalm/Vakthund/actions/workflows/qa.yml/badge.svg?branch=main" alt="QA"></a>
   <!-- release-badge:start -->
-  <a href="https://github.com/albinalm/Vakthund/pkgs/container/vakthund-ui?tag=2026.05.07.0012"><img src="https://img.shields.io/badge/release-2026.05.07.0012-fd9c1d" alt="Release 2026.05.07.0012"></a>
+  <a href="https://github.com/albinalm/Vakthund/pkgs/container/vakthund-ui?tag=2026.05.07.0013"><img src="https://img.shields.io/badge/release-2026.05.07.0013-fd9c1d" alt="Release 2026.05.07.0013"></a>
   <!-- release-badge:end -->
   <a href="https://github.com/albinalm/Vakthund/pulse"><img src="https://img.shields.io/github/commit-activity/m/albinalm/Vakthund" alt="Commit activity"></a>
   <a href="https://github.com/albinalm/Vakthund/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License"></a>
