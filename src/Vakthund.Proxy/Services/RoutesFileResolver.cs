@@ -2,13 +2,12 @@ namespace Vakthund.Proxy.Services;
 
 public static class RoutesFileResolver
 {
-    public const string DevelopmentRoutesFileName = "routes.local.yaml";
-    public const string DockerRoutesFilePath = "/etc/vakthund/routes.yaml";
+    public const string LocalRoutesFileName = "routes.local.yaml";
+    private const string DockerRoutesFilePath = "/etc/vakthund/routes.yaml";
 
     public static string? Resolve(
         string? configuredFilePath,
         string contentRootPath,
-        bool isDevelopment,
         string dockerRoutesFilePath = DockerRoutesFilePath)
     {
         if (!string.IsNullOrWhiteSpace(configuredFilePath))
@@ -16,9 +15,9 @@ public static class RoutesFileResolver
             return ResolvePath(configuredFilePath, contentRootPath);
         }
 
-        if (isDevelopment && TryResolveExistingPath(DevelopmentRoutesFileName, contentRootPath) is { Length: > 0 } developmentPath)
+        if (TryResolveExistingPath(LocalRoutesFileName, contentRootPath) is { Length: > 0 } localPath)
         {
-            return developmentPath;
+            return localPath;
         }
 
         if (File.Exists(dockerRoutesFilePath))
@@ -29,15 +28,13 @@ public static class RoutesFileResolver
         return null;
     }
 
-    public static string ResolvePath(string filePath, string contentRootPath)
+    private static string ResolvePath(string filePath, string contentRootPath)
     {
         string trimmedFilePath = filePath.Trim();
-        if (Path.IsPathRooted(trimmedFilePath))
-        {
-            return trimmedFilePath;
-        }
-
-        return Path.GetFullPath(Path.Combine(contentRootPath, trimmedFilePath));
+        
+        return Path.IsPathRooted(trimmedFilePath)
+            ? trimmedFilePath
+            : Path.GetFullPath(Path.Combine(contentRootPath, trimmedFilePath));
     }
 
     private static string? TryResolveExistingPath(string filePath, string contentRootPath)

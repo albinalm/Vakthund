@@ -9,7 +9,7 @@ These settings belong to `Vakthund.Proxy`.
 | Environment variable | App setting | Default | Purpose |
 | --- | --- | --- | --- |
 | `TARGET` | `Proxy:TargetUrl` | `https://localhost:5001` in appsettings | Single upstream URL used when no routes file is loaded. |
-| `ROUTES_FILE` | `Proxy:RoutesFile` | `routes.local.yaml` in development when that file exists; `/etc/vakthund/routes.yaml` when that file exists | YAML routes file path. |
+| `ROUTES_FILE` | `Proxy:RoutesFile` | `routes.local.yaml` beside the proxy when that file exists; `/etc/vakthund/routes.yaml` when that file exists | YAML routes file path. |
 | `MAX_BODY_BYTES` | `Proxy:MaxBodyBytes` | `65536` | Maximum request body size to capture. Use `0` to disable request body capture. |
 | `MAX_RESPONSE_BODY_BYTES` | `Proxy:MaxResponseBodyBytes` | `65536` in code | Maximum response body size to capture. Use `0` to disable response body capture. |
 | `MAX_QUEUED_ENTRIES` | `Proxy:MaxQueuedEntries` | `10000` | Proxy audit queue capacity. Oldest entries are dropped when full. |
@@ -49,17 +49,29 @@ routes:
     target: http://host.docker.internal:3000
 ```
 
+When the upstream service uses a different path than the downstream path exposed by Vakthund, add `to` on that route:
+
+```yaml
+routes:
+  - path: /foobar/**
+    target: http://host.docker.internal:5001
+    to: /api/foobar
+```
+
+With this route, `/foobar/items/123` is forwarded to `http://host.docker.internal:5001/api/foobar/items/123`.
+
 Each route has:
 
 - `path`: the incoming path pattern to match.
 - `target`: the upstream base URL.
+- `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
 - `auth`: optional route auth contract. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
 
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally.
 
 Use specific paths for individual services, and add a broad `/**` fallback only when you want unmatched traffic to go somewhere.
 
-During local debug, `Vakthund.Proxy` automatically checks for `routes.local.yaml` in the proxy project directory when no explicit routes file is configured. The file is ignored by Git so each developer can keep machine-specific targets and auth expectations locally. Use `src/Vakthund.Proxy/routes.local.example.yaml` as the committed shape.
+When no explicit routes file is configured, `Vakthund.Proxy` automatically checks for `routes.local.yaml` beside the running proxy. During local source runs this is `src/Vakthund.Proxy/routes.local.yaml`; for a published non-Docker app it is a sidecar file next to the published proxy. The source local file is ignored by Git so each developer can keep machine-specific targets and auth expectations locally. Use `src/Vakthund.Proxy/routes.local.example.yaml` as the committed shape.
 
 Explicit route file configuration still wins. Relative paths in `Proxy:RoutesFile` or `ROUTES_FILE` are resolved from the proxy content root.
 

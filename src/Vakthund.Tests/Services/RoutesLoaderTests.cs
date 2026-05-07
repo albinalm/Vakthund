@@ -40,6 +40,33 @@ public class RoutesLoaderTests
     }
 
     [Fact]
+    public void TryLoad_MapsRouteToPath()
+    {
+        string filePath = Path.Combine(AppContext.BaseDirectory, $"{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(
+            filePath,
+            """
+            routes:
+              - path: /orders/**
+                target: https://backend.example.test
+                to: /api/orders
+            """);
+
+        try
+        {
+            VakthundRoute route = Assert.Single(RoutesLoader.TryLoad(filePath)!);
+
+            Assert.Equal("/orders/**", route.Path);
+            Assert.Equal("https://backend.example.test", route.Target);
+            Assert.Equal("/api/orders", route.To);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [Fact]
     public void TryLoad_MapsRouteJweDecryptionConfig()
     {
         string filePath = Path.Combine(AppContext.BaseDirectory, $"{Guid.NewGuid():N}.yaml");

@@ -12,7 +12,7 @@ public class RoutesFileResolverTests
 
         try
         {
-            string? resolvedPath = RoutesFileResolver.Resolve(configuredPath, contentRootPath, isDevelopment: true);
+            string? resolvedPath = RoutesFileResolver.Resolve(configuredPath, contentRootPath);
 
             Assert.Equal(configuredPath, resolvedPath);
         }
@@ -30,7 +30,7 @@ public class RoutesFileResolverTests
 
         try
         {
-            string? resolvedPath = RoutesFileResolver.Resolve("config/routes.yaml", contentRootPath, isDevelopment: true);
+            string? resolvedPath = RoutesFileResolver.Resolve("config/routes.yaml", contentRootPath);
 
             Assert.Equal(expectedPath, resolvedPath);
         }
@@ -41,15 +41,15 @@ public class RoutesFileResolverTests
     }
 
     [Fact]
-    public void Resolve_ReturnsDevelopmentRoutesFile_WhenNoPathIsConfigured()
+    public void Resolve_ReturnsLocalRoutesFile_WhenNoPathIsConfigured()
     {
         string contentRootPath = CreateTemporaryDirectory();
-        string localRoutesPath = Path.Combine(contentRootPath, RoutesFileResolver.DevelopmentRoutesFileName);
+        string localRoutesPath = Path.Combine(contentRootPath, RoutesFileResolver.LocalRoutesFileName);
         File.WriteAllText(localRoutesPath, "routes: []");
 
         try
         {
-            string? resolvedPath = RoutesFileResolver.Resolve("", contentRootPath, isDevelopment: true);
+            string? resolvedPath = RoutesFileResolver.Resolve("", contentRootPath);
 
             Assert.Equal(localRoutesPath, resolvedPath);
         }
@@ -60,16 +60,16 @@ public class RoutesFileResolverTests
     }
 
     [Fact]
-    public void Resolve_PrefersConfiguredPath_OverDevelopmentRoutesFile()
+    public void Resolve_PrefersConfiguredPath_OverLocalRoutesFile()
     {
         string contentRootPath = CreateTemporaryDirectory();
-        string localRoutesPath = Path.Combine(contentRootPath, RoutesFileResolver.DevelopmentRoutesFileName);
+        string localRoutesPath = Path.Combine(contentRootPath, RoutesFileResolver.LocalRoutesFileName);
         string configuredPath = Path.Combine(contentRootPath, "configured.yaml");
         File.WriteAllText(localRoutesPath, "routes: []");
 
         try
         {
-            string? resolvedPath = RoutesFileResolver.Resolve(configuredPath, contentRootPath, isDevelopment: true);
+            string? resolvedPath = RoutesFileResolver.Resolve(configuredPath, contentRootPath);
 
             Assert.Equal(configuredPath, resolvedPath);
         }
@@ -80,23 +80,22 @@ public class RoutesFileResolverTests
     }
 
     [Fact]
-    public void Resolve_IgnoresDevelopmentRoutesFile_OutsideDevelopment()
+    public void Resolve_PrefersLocalRoutesFile_OverDockerRoutesFile()
     {
         string contentRootPath = CreateTemporaryDirectory();
-        string localRoutesPath = Path.Combine(contentRootPath, RoutesFileResolver.DevelopmentRoutesFileName);
+        string localRoutesPath = Path.Combine(contentRootPath, RoutesFileResolver.LocalRoutesFileName);
+        string dockerRoutesPath = Path.Combine(contentRootPath, "docker-routes.yaml");
         File.WriteAllText(localRoutesPath, "routes: []");
+        File.WriteAllText(dockerRoutesPath, "routes: []");
 
         try
         {
-            string missingDockerPath = Path.Combine(contentRootPath, "missing-docker-routes.yaml");
-
             string? resolvedPath = RoutesFileResolver.Resolve(
                 "",
                 contentRootPath,
-                isDevelopment: false,
-                dockerRoutesFilePath: missingDockerPath);
+                dockerRoutesFilePath: dockerRoutesPath);
 
-            Assert.Null(resolvedPath);
+            Assert.Equal(localRoutesPath, resolvedPath);
         }
         finally
         {
@@ -116,7 +115,6 @@ public class RoutesFileResolverTests
             string? resolvedPath = RoutesFileResolver.Resolve(
                 "",
                 contentRootPath,
-                isDevelopment: false,
                 dockerRoutesFilePath: dockerRoutesPath);
 
             Assert.Equal(dockerRoutesPath, resolvedPath);

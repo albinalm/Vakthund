@@ -6,5 +6,6 @@ public class VakthundRoute
 {
     public string Path { get; init; } = "";
     public string Target { get; init; } = "";
+    public string To { get; init; } = "";
     public AuthExpectation? Auth { get; init; }
 }

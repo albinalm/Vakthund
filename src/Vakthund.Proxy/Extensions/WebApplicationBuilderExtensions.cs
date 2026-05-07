@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Hosting;
 using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Services;
 
@@ -40,8 +39,7 @@ public static class WebApplicationBuilderExtensions
     {
         string? routesFilePath = RoutesFileResolver.Resolve(
             builder.Configuration["Proxy:RoutesFile"],
-            builder.Environment.ContentRootPath,
-            builder.Environment.IsDevelopment());
+            builder.Environment.ContentRootPath);
         List<VakthundRoute>? routes = RoutesLoader.TryLoad(routesFilePath);
 
         if (routes is null)

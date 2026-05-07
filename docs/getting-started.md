@@ -151,6 +151,17 @@ routes:
     target: http://host.docker.internal:3000
 ```
 
+If the upstream service uses a different path than the one clients call through Vakthund, add `to` on that route:
+
+```yaml
+routes:
+  - path: /foobar/**
+    target: http://host.docker.internal:5001
+    to: /api/foobar
+```
+
+For example, `/foobar/items/123` is forwarded to `http://host.docker.internal:5001/api/foobar/items/123`.
+
 The `path` value is matched by YARP. Vakthund accepts common catch-all paths such as `/**` and `/api/**`, and converts them to YARP catch-all patterns internally.
 
 When a routes file is present, it takes priority over `TARGET`.
@@ -192,7 +203,7 @@ routes:
 
 Enforced route auth validates bearer JWT signatures and local claims. An enforced route must configure `jwksUrl`, `openIdConfigurationUrl`, or an absolute URL `issuer` that supports OIDC discovery.
 
-For local debugging without Docker, create `src/Vakthund.Proxy/routes.local.yaml`. When the proxy runs in `Development` and no explicit `ROUTES_FILE` or `Proxy:RoutesFile` is set, Vakthund loads that file automatically. The local file is ignored by Git; `src/Vakthund.Proxy/routes.local.example.yaml` shows the expected shape.
+For local debugging without Docker, create `src/Vakthund.Proxy/routes.local.yaml`. When no explicit `ROUTES_FILE` or `Proxy:RoutesFile` is set, Vakthund loads `routes.local.yaml` from the proxy content root automatically. In a published non-Docker app, place it beside the published proxy. The source local file is ignored by Git; `src/Vakthund.Proxy/routes.local.example.yaml` shows the expected shape.
 
 ## Mounting a Routes File
 

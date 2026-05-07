@@ -53,7 +53,15 @@ public static class WebApplicationExtensions
         app.MapGet("/config", (IReadOnlyList<VakthundRoute> routes, IOptions<ProxyOptions> options) =>
             Results.Ok(new ProxyConfig
             {
-                Routes = routes.Select(r => new ProxyRouteInfo { Path = r.Path, Target = r.Target, Auth = r.Auth }).ToList(),
+                Routes = routes
+                    .Select(r => new ProxyRouteInfo
+                    {
+                        Path = r.Path,
+                        Target = r.Target,
+                        To = r.To,
+                        Auth = r.Auth
+                    })
+                    .ToList(),
                 MaxBodyBytes = options.Value.MaxBodyBytes,
                 MaxResponseBodyBytes = options.Value.MaxResponseBodyBytes,
                 MaxQueuedEntries = options.Value.MaxQueuedEntries

@@ -48,4 +48,40 @@ public class ProxyRouteConfigFactoryTests
         RouteConfig route = Assert.Single(routes);
         Assert.Null(route.AuthorizationPolicy);
     }
+
+    [Fact]
+    public void BuildRoutes_AddsPathPatternTransform_WhenCatchAllRouteHasToPath()
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/foobar/**",
+                Target = "http://localhost:5001",
+                To = "/api/foobar"
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        IReadOnlyDictionary<string, string> transform = Assert.Single(route.Transforms!);
+        Assert.Equal("/api/foobar/{**catch-all}", transform["PathPattern"]);
+    }
+
+    [Fact]
+    public void BuildRoutes_AddsPathSetTransform_WhenExactRouteHasToPath()
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/health",
+                Target = "http://localhost:5001",
+                To = "/internal/health"
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        IReadOnlyDictionary<string, string> transform = Assert.Single(route.Transforms!);
+        Assert.Equal("/internal/health", transform["PathSet"]);
+    }
 }
