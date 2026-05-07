@@ -125,6 +125,28 @@ public class ProxyRouteConfigFactoryTests
         Assert.Null(route.TimeoutPolicy);
     }
 
+    [Theory]
+    [InlineData("3600000")]
+    [InlineData("3600s")]
+    [InlineData("60m")]
+    [InlineData("1h")]
+    [InlineData("01:00:00")]
+    public void BuildClusters_SetsForwarderActivityTimeout(string timeout)
+    {
+        List<ClusterConfig> clusters = ProxyRouteConfigFactory.BuildClusters(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000",
+                Timeout = timeout
+            }
+        ]);
+
+        ClusterConfig cluster = Assert.Single(clusters);
+        Assert.Equal(TimeSpan.FromHours(1), cluster.HttpRequest?.ActivityTimeout);
+    }
+
     [Fact]
     public void BuildRoutes_DisablesTimeout_WhenRouteTimeoutIsDisable()
     {
@@ -141,6 +163,39 @@ public class ProxyRouteConfigFactoryTests
         RouteConfig route = Assert.Single(routes);
         Assert.Null(route.Timeout);
         Assert.Equal("Disable", route.TimeoutPolicy);
+    }
+
+    [Fact]
+    public void BuildClusters_DisablesForwarderActivityTimeout_WhenRouteTimeoutIsDisable()
+    {
+        List<ClusterConfig> clusters = ProxyRouteConfigFactory.BuildClusters(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000",
+                Timeout = "disable"
+            }
+        ]);
+
+        ClusterConfig cluster = Assert.Single(clusters);
+        Assert.Equal(Timeout.InfiniteTimeSpan, cluster.HttpRequest?.ActivityTimeout);
+    }
+
+    [Fact]
+    public void BuildClusters_UsesYarpDefaultForwarderActivityTimeout_WhenRouteTimeoutIsEmpty()
+    {
+        List<ClusterConfig> clusters = ProxyRouteConfigFactory.BuildClusters(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000"
+            }
+        ]);
+
+        ClusterConfig cluster = Assert.Single(clusters);
+        Assert.Null(cluster.HttpRequest);
     }
 
     [Theory]

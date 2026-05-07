@@ -1,6 +1,7 @@
 using Vakthund.Proxy.Models;
 using System.Globalization;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace Vakthund.Proxy.Services;
 
@@ -40,9 +41,25 @@ public static class ProxyRouteConfigFactory
                 {
                     ["default"] = new() { Address = route.Target }
                 },
+                HttpRequest = BuildForwarderRequestConfig(timeout),
                 Metadata = BuildClusterMetadata(timeout)
             };
         }).ToList();
+
+    private static ForwarderRequestConfig? BuildForwarderRequestConfig(RouteTimeout timeout)
+    {
+        if (timeout.Value is { } ts)
+        {
+            return new ForwarderRequestConfig { ActivityTimeout = ts };
+        }
+
+        if (timeout.Policy is not null)
+        {
+            return new ForwarderRequestConfig { ActivityTimeout = Timeout.InfiniteTimeSpan };
+        }
+
+        return null;
+    }
 
     private static IReadOnlyDictionary<string, string>? BuildClusterMetadata(RouteTimeout timeout)
     {

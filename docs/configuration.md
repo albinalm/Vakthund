@@ -70,7 +70,7 @@ Each route has:
 - `path`: the incoming path pattern to match.
 - `target`: the upstream base URL.
 - `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
-- `timeout`: optional per-route proxy timeout. Use milliseconds, `hh:mm:ss`, or a value ending in `ms`, `s`, `m`, or `h`. Use `disable` to disable YARP's route timeout.
+- `timeout`: optional per-route proxy timeout. Use milliseconds, `hh:mm:ss`, or a value ending in `ms`, `s`, `m`, or `h`. Vakthund applies this to both YARP's route timeout and forwarder activity timeout. Use `disable` to disable both.
 - `ips`: optional client IP whitelist for the route. Values can be exact IPs, CIDR ranges, or trailing IPv4 wildcards such as `203.0.*` and `203.0.113.*`.
 - `auth`: optional route auth contract. This can be an inline auth object or the name of an auth contract defined under `auths`. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
 
@@ -88,6 +88,7 @@ routes:
 ```
 
 The same timeout can also be written as `3600000`, `3600s`, `60m`, or `01:00:00`.
+Without this setting, YARP's forwarder activity timeout defaults to 100 seconds while waiting for response headers or other request/response activity.
 
 To restrict a route by client IP, add `ips`:
 
