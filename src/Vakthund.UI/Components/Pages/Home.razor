@@ -8,7 +8,7 @@
             <h1 class="font-display text-2xl font-semibold text-gray-100">Dashboard</h1>
             <p class="mt-1 text-sm text-gray-500">Traffic captured from the proxy audit stream.</p>
         </div>
-        <a href="/requests" class="inline-flex items-center rounded border border-gray-700 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-500">
+        <a href="requests" class="inline-flex items-center rounded border border-gray-700 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-amber-500 hover:text-amber-500">
             View requests
         </a>
     </header>
@@ -136,7 +136,7 @@
             }
             else
             {
-                <a href="@($"/request/{_metrics.LatestRequest.Id}")" class="block rounded border border-gray-800 bg-gray-950 p-3 transition-colors hover:border-amber-500">
+                <a href="@($"request/{_metrics.LatestRequest.Id}")" class="block rounded border border-gray-800 bg-gray-950 p-3 transition-colors hover:border-amber-500">
                     <div class="flex items-center gap-2">
                         <span class="rounded bg-blue-600 px-2 py-1 text-xs font-bold text-white">@_metrics.LatestRequest.Method</span>
                         <span class="rounded px-2 py-1 text-xs font-bold @HttpStyle.StatusColor(_metrics.LatestRequest.StatusCode)">@_metrics.LatestRequest.StatusCode</span>

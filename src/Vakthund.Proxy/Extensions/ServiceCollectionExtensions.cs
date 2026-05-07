@@ -1,4 +1,3 @@
-using System.Globalization;
 using Vakthund.Proxy.Middlewares;
 using Vakthund.Proxy.Models;
 using Vakthund.Proxy.Options;
@@ -29,15 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddReverseProxy()
             .ConfigureHttpClient((context, handler) =>
             {
-                if (context.NewMetadata?.TryGetValue(ProxyRouteConfigFactory.ConnectTimeoutMetadataKey, out string? tickStr) == true &&
-                    long.TryParse(tickStr, CultureInfo.InvariantCulture, out long ticks))
-                {
-                    handler.ConnectTimeout = ticks == 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromTicks(ticks);
-                }
-                else
-                {
-                    handler.ConnectTimeout = fallbackConnectTimeout;
-                }
+                handler.ConnectTimeout = fallbackConnectTimeout;
             })
             .LoadFromMemory(
                 routes: ProxyRouteConfigFactory.BuildRoutes(routes),

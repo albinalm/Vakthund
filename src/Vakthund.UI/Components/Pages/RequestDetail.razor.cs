@@ -96,7 +96,7 @@ public partial class RequestDetail
     private async Task SetTitle(string title) =>
         await JsRuntime.InvokeVoidAsync("setDocumentTitle", title);
 
-    private void NavigateBack() => Nav.NavigateTo("/requests");
+    private void NavigateBack() => Nav.NavigateTo("requests");
 
     private void ToggleBody() => _bodyExpanded = !_bodyExpanded;
     private void ToggleResponseBody() => _responseBodyExpanded = !_responseBodyExpanded;

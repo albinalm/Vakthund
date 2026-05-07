@@ -13,6 +13,7 @@ These settings belong to `Vakthund.Proxy`.
 | `MAX_BODY_BYTES` | `Proxy:MaxBodyBytes` | `65536` | Maximum request body size to capture. Use `0` to disable request body capture. |
 | `MAX_RESPONSE_BODY_BYTES` | `Proxy:MaxResponseBodyBytes` | `65536` in code | Maximum response body size to capture. Use `0` to disable response body capture. |
 | `MAX_QUEUED_ENTRIES` | `Proxy:MaxQueuedEntries` | `10000` | Proxy audit queue capacity. Oldest entries are dropped when full. |
+| `Proxy__ConnectTimeoutSeconds` | `Proxy:ConnectTimeoutSeconds` | `30` | TCP connect timeout for upstream destinations. Use `0` to disable connect timeout. |
 
 The proxy listens on:
 
@@ -88,7 +89,7 @@ routes:
 ```
 
 The same timeout can also be written as `3600000`, `3600s`, `60m`, or `01:00:00`.
-Without this setting, YARP's forwarder activity timeout defaults to 100 seconds while waiting for response headers or other request/response activity.
+Without this setting, YARP's forwarder activity timeout defaults to 100 seconds while waiting for response headers or other request/response activity. Route `timeout` does not control the TCP connect timeout; use `Proxy:ConnectTimeoutSeconds` for that.
 
 To restrict a route by client IP, add `ips`:
 

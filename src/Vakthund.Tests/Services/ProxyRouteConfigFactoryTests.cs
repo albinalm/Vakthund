@@ -145,6 +145,7 @@ public class ProxyRouteConfigFactoryTests
 
         ClusterConfig cluster = Assert.Single(clusters);
         Assert.Equal(TimeSpan.FromHours(1), cluster.HttpRequest?.ActivityTimeout);
+        Assert.Null(cluster.Metadata);
     }
 
     [Fact]
