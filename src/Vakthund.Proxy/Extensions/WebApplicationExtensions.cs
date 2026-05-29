@@ -100,7 +100,14 @@ public static class WebApplicationExtensions
         app.UseAuthorization();
         app.UseRequestTimeouts();
 
-        app.MapReverseProxy().RequireHost(proxyHostPatterns);
+        app.MapReverseProxy()
+            .ConfigureEndpoints((endpointBuilder, route) =>
+            {
+                if (route.Match.Hosts is null || route.Match.Hosts.Count == 0)
+                {
+                    endpointBuilder.RequireHost(proxyHostPatterns);
+                }
+            });
 
         return app;
     }
