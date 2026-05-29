@@ -44,6 +44,9 @@ The routes file is YAML:
 routes:
   - path: /api/**
     target: http://host.docker.internal:5000
+    hosts:
+      - api.example.test
+      - "*.api.example.test"
   - path: /identity/**
     target: http://host.docker.internal:5001
   - path: /**
@@ -69,6 +72,7 @@ With this route, `/foobar/items/123` is forwarded to `http://host.docker.interna
 Each route has:
 
 - `path`: the incoming path pattern to match.
+- `hosts`: optional host filters for the route. Values can be exact hosts such as `api.example.test`, wildcard subdomains such as `*.api.example.test`, or `*`.
 - `target`: the upstream base URL.
 - `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
 - `timeout`: optional per-route proxy timeout. Use milliseconds, `hh:mm:ss`, or a value ending in `ms`, `s`, `m`, or `h`. Vakthund applies this to both YARP's route timeout and forwarder activity timeout. Use `disable` to disable both.
@@ -78,6 +82,19 @@ Each route has:
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally. A path such as `/logs/**` matches `/logs`, `/logs/`, and deeper paths such as `/logs/archive/2026`.
 
 Use specific paths for individual services, and add a broad `/**` fallback only when you want unmatched traffic to go somewhere.
+
+To restrict a route by host or subdomain, add `hosts`:
+
+```yaml
+routes:
+  - path: /api/**
+    target: http://host.docker.internal:5000
+    hosts:
+      - api.example.test
+      - "*.api.example.test"
+```
+
+Requests whose `Host` header does not match one of the configured hosts do not match that route. This is useful when several services share the same path shape but are separated by subdomain.
 
 For long-running APIs, configure `timeout` on the specific route:
 

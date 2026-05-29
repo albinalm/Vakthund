@@ -12,6 +12,7 @@ public static class ProxyRouteStartupLog
             UpstreamPath: ResolveUpstreamPath(route),
             RewritePath: string.IsNullOrWhiteSpace(route.To) ? null : NormalizePath(route.To),
             Timeout: string.IsNullOrWhiteSpace(route.Timeout) ? null : route.Timeout.Trim(),
+            Hosts: route.Hosts is { Count: > 0 } ? [.. route.Hosts] : [],
             Ips: route.Ips is { Count: > 0 } ? [.. route.Ips] : []))
         .ToList();
 
@@ -22,11 +23,12 @@ public static class ProxyRouteStartupLog
         foreach (ProxyRouteLogEntry entry in BuildEntries(routes))
         {
             logger.LogInformation(
-                "Proxy route configured {RouteIndex}: {DownstreamPath} -> {UpstreamBase}{UpstreamPath}; rewrite {PathRewrite}; timeout {RouteTimeout}; ips {AllowedIps}",
+                "Proxy route configured {RouteIndex}: {DownstreamPath} -> {UpstreamBase}{UpstreamPath}; hosts {AllowedHosts}; rewrite {PathRewrite}; timeout {RouteTimeout}; ips {AllowedIps}",
                 entry.Index,
                 entry.DownstreamPath,
                 entry.UpstreamBase,
                 entry.UpstreamPath,
+                entry.Hosts.Count > 0 ? string.Join(", ", entry.Hosts) : "any",
                 entry.RewritePath ?? "none",
                 entry.Timeout ?? "default",
                 entry.Ips.Count > 0 ? string.Join(", ", entry.Ips) : "any");

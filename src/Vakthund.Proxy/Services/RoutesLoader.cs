@@ -33,6 +33,7 @@ public static class RoutesLoader
                 Target = route.Target,
                 To = route.To,
                 Timeout = route.Timeout,
+                Hosts = NormalizeHosts(route.Hosts),
                 Ips = ResolveIps(route.Ips, namedIps, route.Path),
                 Auth = ResolveAuth(route.Auth, namedAuths, route.Path)
             })
@@ -161,5 +162,11 @@ public static class RoutesLoader
             }
         };
     }
+
+    private static List<string> NormalizeHosts(IEnumerable<string>? hosts) =>
+        (hosts ?? Enumerable.Empty<string>()).Select(host => host.Trim())
+            .Where(host => !string.IsNullOrWhiteSpace(host))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
 }

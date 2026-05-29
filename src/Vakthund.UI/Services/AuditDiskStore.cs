@@ -259,6 +259,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                  Timestamp TEXT NOT NULL,
                                  Scheme TEXT NOT NULL,
                                  Host TEXT NULL,
+                                 IncomingHost TEXT NULL,
                                  Path TEXT NOT NULL,
                                  Query TEXT NULL,
                                  Method TEXT NOT NULL,
@@ -314,6 +315,17 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
         {
             // Column already exists in pre-existing databases.
         }
+
+        try
+        {
+            using SqliteCommand migrate = connection.CreateCommand();
+            migrate.CommandText = "ALTER TABLE AuditEntries ADD COLUMN IncomingHost TEXT NULL;";
+            migrate.ExecuteNonQuery();
+        }
+        catch (SqliteException)
+        {
+            // Column already exists in pre-existing databases.
+        }
     }
 
     private static void Upsert(
@@ -331,6 +343,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   Timestamp,
                                   Scheme,
                                   Host,
+                                  IncomingHost,
                                   Path,
                                   Query,
                                   Method,
@@ -354,6 +367,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   $timestamp,
                                   $scheme,
                                   $host,
+                                  $incomingHost,
                                   $path,
                                   $query,
                                   $method,
@@ -375,6 +389,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
                                   Timestamp = excluded.Timestamp,
                                   Scheme = excluded.Scheme,
                                   Host = excluded.Host,
+                                  IncomingHost = excluded.IncomingHost,
                                   Path = excluded.Path,
                                   Query = excluded.Query,
                                   Method = excluded.Method,
@@ -397,6 +412,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
         command.Parameters.AddWithValue("$timestamp", entry.Timestamp.ToString("O"));
         command.Parameters.AddWithValue("$scheme", entry.Scheme);
         command.Parameters.AddWithValue("$host", ToDbValue(entry.Host));
+        command.Parameters.AddWithValue("$incomingHost", ToDbValue(entry.IncomingHost));
         command.Parameters.AddWithValue("$path", entry.Path);
         command.Parameters.AddWithValue("$query", ToDbValue(entry.Query));
         command.Parameters.AddWithValue("$method", entry.Method);
@@ -481,6 +497,7 @@ public class AuditDiskStore(IOptions<UiOptions> options) : IAuditStore
             Timestamp = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("Timestamp"))),
             Scheme = reader.GetString(reader.GetOrdinal("Scheme")),
             Host = GetNullableString(reader, "Host"),
+            IncomingHost = GetNullableString(reader, "IncomingHost"),
             Path = reader.GetString(reader.GetOrdinal("Path")),
             Query = GetNullableString(reader, "Query"),
             Method = reader.GetString(reader.GetOrdinal("Method")),

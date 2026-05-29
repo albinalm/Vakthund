@@ -145,6 +145,9 @@ Use a routes file when different paths should go to different upstream services.
 routes:
   - path: /api/**
     target: http://host.docker.internal:5000
+    hosts:
+      - api.example.test
+      - "*.api.example.test"
   - path: /identity/**
     target: http://host.docker.internal:5001
   - path: /**
@@ -163,6 +166,8 @@ routes:
 For example, `/foobar/items/123` is forwarded to `http://host.docker.internal:5001/api/foobar/items/123`.
 
 The `path` value is matched by YARP. Vakthund accepts common catch-all paths such as `/**` and `/api/**`, and converts them to YARP catch-all patterns internally. A route such as `/logs/**` matches `/logs`, `/logs/`, and deeper paths such as `/logs/archive/2026`.
+
+Add `hosts` when the same proxy should split traffic by host or subdomain. Exact hosts such as `api.example.test`, wildcard subdomains such as `*.api.example.test`, and `*` are supported.
 
 When a routes file is present, it takes priority over `TARGET`.
 

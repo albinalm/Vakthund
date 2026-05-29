@@ -139,7 +139,7 @@ public class AuditHubConnection : IAsyncDisposable
         {
             foreach (AuditEntry entry in entries)
             {
-                entry.MatchedRoute = _proxyRouteMatcher.FindMatchingRoute(config.Routes, entry.Path);
+                entry.MatchedRoute = _proxyRouteMatcher.FindMatchingRoute(config.Routes, entry.Path, entry.IncomingHost ?? entry.Host);
             }
         }
 

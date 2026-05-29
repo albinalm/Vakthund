@@ -37,6 +37,7 @@ public class AuditDiskStoreTests : IDisposable
             Timestamp = DateTimeOffset.UtcNow,
             Scheme = "https",
             Host = "example.com",
+            IncomingHost = "api.example.com",
             Path = "/api/test",
             Query = "?foo=bar",
             Method = "POST",
@@ -62,6 +63,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal(entry.Timestamp, result.Timestamp);
         Assert.Equal(entry.Scheme, result.Scheme);
         Assert.Equal(entry.Host, result.Host);
+        Assert.Equal(entry.IncomingHost, result.IncomingHost);
         Assert.Equal(entry.Path, result.Path);
         Assert.Equal(entry.Query, result.Query);
         Assert.Equal(entry.Method, result.Method);
@@ -89,6 +91,7 @@ public class AuditDiskStoreTests : IDisposable
 
         Assert.NotNull(result);
         Assert.Null(result.Host);
+        Assert.Null(result.IncomingHost);
         Assert.Null(result.Query);
         Assert.Null(result.ClientIp);
         Assert.Null(result.ContentType);
@@ -109,6 +112,7 @@ public class AuditDiskStoreTests : IDisposable
             Path = "/api/**",
             Target = "https://backend.internal",
             Timeout = "1h",
+            Hosts = ["api.example.test"],
             Ips = ["203.0.113.*"],
             Auth = new AuthExpectation
             {
@@ -126,6 +130,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal("/api/**", result.MatchedRoute.Path);
         Assert.Equal("https://backend.internal", result.MatchedRoute.Target);
         Assert.Equal("1h", result.MatchedRoute.Timeout);
+        Assert.Equal(["api.example.test"], result.MatchedRoute.Hosts);
         Assert.Equal(["203.0.113.*"], result.MatchedRoute.Ips);
         AuthExpectation auth = Assert.IsType<AuthExpectation>(result.MatchedRoute.Auth);
         JweDecryptionConfig jwe = Assert.IsType<JweDecryptionConfig>(auth.Jwe);

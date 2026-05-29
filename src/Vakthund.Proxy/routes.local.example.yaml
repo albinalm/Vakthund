@@ -20,6 +20,9 @@ routes:
   - path: /foobar/**
     target: http://localhost:5001
     to: /api/foobar
+    hosts:
+      - api.localhost
+      - "*.api.localhost"
     auth: local-api
   - path: /api/**
     target: http://localhost:5000

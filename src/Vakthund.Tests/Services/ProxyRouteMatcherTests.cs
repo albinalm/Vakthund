@@ -32,4 +32,39 @@ public class ProxyRouteMatcherTests
 
         Assert.Same(fallbackRoute, route);
     }
+
+    [Fact]
+    public void FindMatchingRoute_PrefersHostSpecificRoute_WhenHostMatches()
+    {
+        var matcher = new ProxyRouteMatcher();
+        ProxyRouteInfo hostRoute = new() { Path = "/api/**", Target = "https://api.example", Hosts = ["api.example.test"] };
+        ProxyRouteInfo fallbackRoute = new() { Path = "/api/**", Target = "https://fallback.example" };
+
+        ProxyRouteInfo? route = matcher.FindMatchingRoute([fallbackRoute, hostRoute], "/api/orders", "api.example.test:8080");
+
+        Assert.Same(hostRoute, route);
+    }
+
+    [Fact]
+    public void FindMatchingRoute_UsesFallbackRoute_WhenHostDoesNotMatch()
+    {
+        var matcher = new ProxyRouteMatcher();
+        ProxyRouteInfo hostRoute = new() { Path = "/api/**", Target = "https://api.example", Hosts = ["api.example.test"] };
+        ProxyRouteInfo fallbackRoute = new() { Path = "/api/**", Target = "https://fallback.example" };
+
+        ProxyRouteInfo? route = matcher.FindMatchingRoute([hostRoute, fallbackRoute], "/api/orders", "web.example.test");
+
+        Assert.Same(fallbackRoute, route);
+    }
+
+    [Fact]
+    public void FindMatchingRoute_MatchesWildcardHost()
+    {
+        var matcher = new ProxyRouteMatcher();
+        ProxyRouteInfo hostRoute = new() { Path = "/api/**", Target = "https://api.example", Hosts = ["*.example.test"] };
+
+        ProxyRouteInfo? route = matcher.FindMatchingRoute([hostRoute], "/api/orders", "orders.example.test");
+
+        Assert.Same(hostRoute, route);
+    }
 }

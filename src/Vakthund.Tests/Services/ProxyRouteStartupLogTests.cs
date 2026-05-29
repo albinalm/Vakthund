@@ -23,6 +23,7 @@ public class ProxyRouteStartupLogTests
         Assert.Equal("/logs/**", entry.UpstreamPath);
         Assert.Null(entry.RewritePath);
         Assert.Null(entry.Timeout);
+        Assert.Empty(entry.Hosts);
         Assert.Empty(entry.Ips);
     }
 
@@ -90,5 +91,21 @@ public class ProxyRouteStartupLogTests
         ]));
 
         Assert.Equal(["203.0.113.*"], entry.Ips);
+    }
+
+    [Fact]
+    public void BuildEntries_IncludesHosts_WhenRouteHasHostFilters()
+    {
+        ProxyRouteLogEntry entry = Assert.Single(ProxyRouteStartupLog.BuildEntries(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "http://localhost:5000",
+                Hosts = ["api.example.test", "*.internal.example.test"]
+            }
+        ]));
+
+        Assert.Equal(["api.example.test", "*.internal.example.test"], entry.Hosts);
     }
 }

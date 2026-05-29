@@ -32,6 +32,7 @@ public class RequestInterceptor(AuditQueue queue, ProxyActivityFeed activityFeed
         {
             Scheme = context.Request.Scheme,
             Host = context.Request.Host.Value,
+            IncomingHost = context.Request.Host.Value,
             Path = context.Request.Path.Value ?? "/",
             Query = context.Request.QueryString.HasValue ? context.Request.QueryString.Value : null,
             Method = context.Request.Method,

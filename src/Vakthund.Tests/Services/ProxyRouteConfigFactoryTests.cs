@@ -67,6 +67,23 @@ public class ProxyRouteConfigFactoryTests
     }
 
     [Fact]
+    public void BuildRoutes_SetsHostFilters_WhenRouteHasHosts()
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/**",
+                Target = "https://backend.example",
+                Hosts = ["api.example.test", "*.internal.example.test"]
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        Assert.Equal(["api.example.test", "*.internal.example.test"], route.Match.Hosts);
+    }
+
+    [Fact]
     public void BuildRoutes_AddsPathPatternTransform_WhenCatchAllRouteHasToPath()
     {
         List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(

@@ -92,6 +92,33 @@ public class RoutesLoaderTests
     }
 
     [Fact]
+    public void TryLoad_MapsRouteHosts()
+    {
+        string filePath = Path.Combine(AppContext.BaseDirectory, $"{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(
+            filePath,
+            """
+            routes:
+              - path: /api/**
+                target: https://backend.example.test
+                hosts:
+                  - api.example.test
+                  - "*.internal.example.test"
+            """);
+
+        try
+        {
+            VakthundRoute route = Assert.Single(RoutesLoader.TryLoad(filePath)!);
+
+            Assert.Equal(["api.example.test", "*.internal.example.test"], route.Hosts);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [Fact]
     public void TryLoad_MapsRouteIpWhitelist()
     {
         string filePath = Path.Combine(AppContext.BaseDirectory, $"{Guid.NewGuid():N}.yaml");

@@ -15,7 +15,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
 
     public AuthVerdict Evaluate(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, ProxyConfig? config, DateTimeOffset now)
     {
-        ProxyRouteInfo? route = _routeMatcher.FindMatchingRoute(config?.Routes, entry.Path);
+        ProxyRouteInfo? route = _routeMatcher.FindMatchingRoute(config?.Routes, entry.Path, entry.IncomingHost ?? entry.Host);
         return EvaluateWithoutSignature(entry, tokens, route, now);
     }
 
@@ -24,7 +24,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
 
     public async Task<AuthVerdict> EvaluateAsync(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, ProxyConfig? config, DateTimeOffset now, CancellationToken ct = default)
     {
-        ProxyRouteInfo? route = _routeMatcher.FindMatchingRoute(config?.Routes, entry.Path);
+        ProxyRouteInfo? route = _routeMatcher.FindMatchingRoute(config?.Routes, entry.Path, entry.IncomingHost ?? entry.Host);
         AuthVerdict verdict = EvaluateWithoutSignature(entry, tokens, route, now);
         if (verdict.Severity == AuthVerdictSeverity.Error)
         {

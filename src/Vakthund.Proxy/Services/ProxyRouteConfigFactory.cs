@@ -21,7 +21,11 @@ public static class ProxyRouteConfigFactory
                 AuthorizationPolicy = RouteAuthPolicies.RequiresAuthorization(route)
                     ? RouteAuthPolicies.PolicyName(index)
                     : null,
-                Match = new RouteMatch { Path = ToYarpPath(route.Path) },
+                Match = new RouteMatch
+                {
+                    Path = ToYarpPath(route.Path),
+                    Hosts = route.Hosts.Count > 0 ? [.. route.Hosts] : null
+                },
                 Transforms = BuildTransforms(route),
                 Timeout = timeout.Value,
                 TimeoutPolicy = timeout.Policy

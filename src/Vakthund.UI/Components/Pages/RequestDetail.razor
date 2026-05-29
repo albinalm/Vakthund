@@ -63,12 +63,16 @@ else
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Route</div>
                     <div class="mt-1 truncate font-mono text-sm text-gray-200">@(_matchedRoute?.Path ?? "-")</div>
-                    @if (_matchedRoute?.Auth?.Enforced == true || _matchedRoute?.Ips.Count > 0)
+                    @if (_matchedRoute?.Auth?.Enforced == true || _matchedRoute?.Ips.Count > 0 || _matchedRoute?.Hosts.Count > 0)
                     {
                         <div class="mt-1 flex flex-wrap gap-1">
                             @if (_matchedRoute?.Auth?.Enforced == true)
                             {
                                 <span class="rounded border border-emerald-700 px-1.5 py-0.5 font-mono text-xs text-emerald-400">auth</span>
+                            }
+                            @if (_matchedRoute?.Hosts.Count > 0)
+                            {
+                                <span class="rounded border border-sky-700 px-1.5 py-0.5 font-mono text-xs text-sky-400">host</span>
                             }
                             @if (_matchedRoute?.Ips.Count > 0)
                             {
@@ -79,7 +83,13 @@ else
                 </div>
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">Host</div>
-                    <div class="mt-1 truncate font-mono text-sm text-gray-200">@_entry.Host</div>
+                    <div class="mt-1 truncate font-mono text-sm text-gray-200">@(_entry.IncomingHost ?? _entry.Host)</div>
+                    @if (!string.IsNullOrWhiteSpace(_entry.IncomingHost) &&
+                         !string.IsNullOrWhiteSpace(_entry.Host) &&
+                         !string.Equals(_entry.IncomingHost, _entry.Host, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="mt-1 truncate font-mono text-xs text-gray-600">target @_entry.Host</div>
+                    }
                 </div>
                 <div class="rounded border border-gray-800 bg-gray-950 p-3">
                     <div class="text-xs text-gray-500">IP</div>

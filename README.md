@@ -69,7 +69,7 @@ Then send client traffic to `http://localhost:8080` and open the UI at `http://l
 
 You can also open `http://localhost:8081` in a browser to confirm the proxy management port is running.
 
-For multiple upstreams or path-based routing, mount a routes file instead. See [Getting Started](docs/getting-started.md) for the full Compose example and the `routes.yaml` format.
+For multiple upstreams or path and subdomain routing, mount a routes file instead. See [Getting Started](docs/getting-started.md) for the full Compose example and the `routes.yaml` format.
 
 ## Projects
 

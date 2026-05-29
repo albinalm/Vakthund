@@ -49,7 +49,7 @@ public partial class RequestDetail
         _cookiesExpanded = false;
         ProxyConfig? config = await LoadProxyConfigAsync();
         _matchedRoute = _entry?.MatchedRoute
-            ?? (_entry is not null ? ProxyRouteMatcher.FindMatchingRoute(config?.Routes, _entry.Path) : null);
+            ?? (_entry is not null ? ProxyRouteMatcher.FindMatchingRoute(config?.Routes, _entry.Path, _entry.IncomingHost ?? _entry.Host) : null);
         _parsedTokens = _entry is not null
             ? JwtTokenParser.Parse(_entry.Headers, _matchedRoute?.Auth)
             : [];

@@ -8,6 +8,7 @@ public class AuditEntry
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
     public required string Scheme { get; set; }
     public required string? Host { get; set; }
+    public string? IncomingHost { get; set; }
     public required string Path { get; set; }
     public string? Query { get; set; }
     public required string Method { get; set; }
