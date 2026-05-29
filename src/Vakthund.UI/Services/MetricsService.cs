@@ -34,7 +34,7 @@ public class MetricsService
         long windowDurationMs = buckets.Sum(bucket => bucket.DurationSumMs);
         long windowTargetDurationMs = buckets.Sum(bucket => bucket.TargetDurationSumMs);
         int windowTargetCount = buckets.Sum(bucket => bucket.TargetCount);
-        int errors = buckets.Sum(bucket => bucket.ErrorCount);
+        int errors = buckets.Sum(CountErrorStatusCodes);
         KeyValuePair<DateTime, int>[] recentSecondBuckets = snapshot.SecondBuckets
             .Where(bucket => bucket.Key > secondCutoff && bucket.Key <= latestSecond)
             .OrderBy(bucket => bucket.Key)
@@ -99,5 +99,10 @@ public class MetricsService
             LatestRequest = latestRequest
         };
     }
+
+    private static int CountErrorStatusCodes(MetricsBucketSnapshot bucket) =>
+        bucket.StatusCounts
+            .Where(status => status.Key >= 400)
+            .Sum(status => status.Value);
 
 }

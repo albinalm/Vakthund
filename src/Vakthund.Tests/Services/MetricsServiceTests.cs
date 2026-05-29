@@ -36,6 +36,43 @@ public class MetricsServiceTests
     }
 
     [Fact]
+    public void Compute_DoesNotCountRedirectsAsErrors()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        AuditEntry moved = Entry(now.AddSeconds(-10), statusCode: 301);
+        AuditEntry notModified = Entry(now.AddSeconds(-5), statusCode: 304);
+        MetricsStore store = BuildStore([moved, notModified]);
+
+        DashboardMetrics metrics = Service.Compute(store.Snapshot(), 2, notModified, now: now);
+
+        Assert.Equal(0, metrics.ErrorRate);
+    }
+
+    [Fact]
+    public void Compute_DerivesErrorRateFromStatusCounts()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var snapshot = new MetricsSnapshot(
+            now,
+            [
+                new MetricsBucketSnapshot(
+                    MetricsStore.MinuteBucket(now),
+                    Count: 2,
+                    DurationSumMs: 100,
+                    TargetDurationSumMs: 0,
+                    TargetCount: 0,
+                    ErrorCount: 2,
+                    LostCount: 0,
+                    StatusCounts: new Dictionary<int, int> { [302] = 1, [500] = 1 })
+            ],
+            new Dictionary<DateTime, int>());
+
+        DashboardMetrics metrics = Service.Compute(snapshot, 2, null, now: now);
+
+        Assert.Equal(50, metrics.ErrorRate);
+    }
+
+    [Fact]
     public void Compute_BuildsTimeSeriesOnlyForRecentWindow()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
