@@ -84,6 +84,23 @@ public class ProxyRouteConfigFactoryTests
     }
 
     [Fact]
+    public void BuildRoutes_MapsHigherPriorityToLowerYarpOrder()
+    {
+        List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/public",
+                Target = "https://backend.example",
+                Priority = 20
+            }
+        ]);
+
+        RouteConfig route = Assert.Single(routes);
+        Assert.Equal(-20, route.Order);
+    }
+
+    [Fact]
     public void BuildRoutes_AddsPathPatternTransform_WhenCatchAllRouteHasToPath()
     {
         List<RouteConfig> routes = ProxyRouteConfigFactory.BuildRoutes(

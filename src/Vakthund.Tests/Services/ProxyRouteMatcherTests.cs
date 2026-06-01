@@ -46,6 +46,18 @@ public class ProxyRouteMatcherTests
     }
 
     [Fact]
+    public void FindMatchingRoute_PrefersHigherPriorityRoute()
+    {
+        var matcher = new ProxyRouteMatcher();
+        ProxyRouteInfo specificRoute = new() { Path = "/api/orders/**", Target = "https://orders.example" };
+        ProxyRouteInfo priorityRoute = new() { Path = "/api/**", Target = "https://priority.example", Priority = 10 };
+
+        ProxyRouteInfo? route = matcher.FindMatchingRoute([specificRoute, priorityRoute], "/api/orders/123");
+
+        Assert.Same(priorityRoute, route);
+    }
+
+    [Fact]
     public void FindMatchingRoute_UsesFallbackRoute_WhenHostDoesNotMatch()
     {
         var matcher = new ProxyRouteMatcher();

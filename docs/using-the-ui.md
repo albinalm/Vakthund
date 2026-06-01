@@ -67,6 +67,7 @@ The configuration page reads the proxy management endpoint and shows:
 - Request body capture limit.
 - Response body capture limit.
 - Proxy queue size.
+- Route priority when configured.
 - Route-level JWE key type when configured through `auth.jwe`.
 
 Routes with auth expectations show subject, issuer, audience, scope, and role chips in the configuration page. Routes that enforce auth at the proxy also show an `enforce` chip.

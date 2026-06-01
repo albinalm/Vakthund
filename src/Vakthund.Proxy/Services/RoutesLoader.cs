@@ -33,6 +33,7 @@ public static class RoutesLoader
                 Target = route.Target,
                 To = route.To,
                 Timeout = route.Timeout,
+                Priority = route.Priority,
                 Hosts = NormalizeHosts(route.Hosts),
                 Ips = ResolveIps(route.Ips, namedIps, route.Path),
                 Auth = ResolveAuth(route.Auth, namedAuths, route.Path)

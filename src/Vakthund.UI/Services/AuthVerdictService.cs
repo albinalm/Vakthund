@@ -8,7 +8,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
     private readonly ProxyRouteMatcher _routeMatcher = routeMatcher ?? new ProxyRouteMatcher();
 
     public AuthVerdict Evaluate(AuditEntry entry, IReadOnlyList<ParsedToken> tokens) =>
-        Evaluate(entry, tokens, null, DateTimeOffset.UtcNow);
+        Evaluate(entry, tokens, null, entry.Timestamp);
 
     public AuthVerdict Evaluate(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, DateTimeOffset now)
         => Evaluate(entry, tokens, null, now);
@@ -20,7 +20,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
     }
 
     public Task<AuthVerdict> EvaluateAsync(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, ProxyConfig? config, CancellationToken ct = default) =>
-        EvaluateAsync(entry, tokens, config, DateTimeOffset.UtcNow, ct);
+        EvaluateAsync(entry, tokens, config, entry.Timestamp, ct);
 
     public async Task<AuthVerdict> EvaluateAsync(AuditEntry entry, IReadOnlyList<ParsedToken> tokens, ProxyConfig? config, DateTimeOffset now, CancellationToken ct = default)
     {

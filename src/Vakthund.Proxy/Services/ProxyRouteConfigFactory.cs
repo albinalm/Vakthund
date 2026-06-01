@@ -18,6 +18,7 @@ public static class ProxyRouteConfigFactory
             {
                 RouteId = $"route-{index}",
                 ClusterId = $"cluster-{index}",
+                Order = ToYarpOrder(route.Priority),
                 AuthorizationPolicy = RouteAuthPolicies.RequiresAuthorization(route)
                     ? RouteAuthPolicies.PolicyName(index)
                     : null,
@@ -46,6 +47,8 @@ public static class ProxyRouteConfigFactory
                 HttpRequest = BuildForwarderRequestConfig(timeout)
             };
         }).ToList();
+
+    private static int ToYarpOrder(int priority) => -priority;
 
     private static ForwarderRequestConfig? BuildForwarderRequestConfig(RouteTimeout timeout)
     {

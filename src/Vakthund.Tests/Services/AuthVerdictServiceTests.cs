@@ -51,6 +51,25 @@ public class AuthVerdictServiceTests
     }
 
     [Fact]
+    public void Evaluate_UsesRequestTimestamp_ForDefaultTimeClaimChecks()
+    {
+        var service = new AuthVerdictService();
+        var token = new ParsedToken
+        {
+            Scheme = "Bearer",
+            JwtPayloadJson = "{}",
+            Claims = new TokenClaimSummary { ExpiresAt = Now.AddMinutes(5) }
+        };
+        AuditEntry entry = Entry(200);
+        entry.Timestamp = Now;
+
+        AuthVerdict verdict = service.Evaluate(entry, [token]);
+
+        Assert.NotEqual(AuthVerdictSeverity.Error, verdict.Severity);
+        Assert.NotEqual("Token is expired.", verdict.Title);
+    }
+
+    [Fact]
     public void Evaluate_ReturnsNotYetValidVerdict_ForFutureNotBefore()
     {
         var service = new AuthVerdictService();

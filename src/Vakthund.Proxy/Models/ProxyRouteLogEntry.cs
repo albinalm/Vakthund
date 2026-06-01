@@ -7,5 +7,6 @@ public sealed record ProxyRouteLogEntry(
     string UpstreamPath,
     string? RewritePath,
     string? Timeout,
+    int Priority,
     IReadOnlyList<string> Hosts,
     IReadOnlyList<string> Ips);

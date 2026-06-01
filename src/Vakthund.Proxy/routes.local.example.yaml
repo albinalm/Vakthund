@@ -28,6 +28,7 @@ routes:
   - path: /api/**
     target: http://localhost:5000
     timeout: 1h
+    priority: 0
     ips: office
     auth: local-api
   - path: /**

@@ -77,6 +77,7 @@ public class RoutesLoaderTests
               - path: /api/generate
                 target: https://backend.example.test
                 timeout: 1h
+                priority: 10
             """);
 
         try
@@ -84,6 +85,7 @@ public class RoutesLoaderTests
             VakthundRoute route = Assert.Single(RoutesLoader.TryLoad(filePath)!);
 
             Assert.Equal("1h", route.Timeout);
+            Assert.Equal(10, route.Priority);
         }
         finally
         {

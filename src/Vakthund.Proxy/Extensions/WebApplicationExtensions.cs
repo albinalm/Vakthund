@@ -60,6 +60,7 @@ public static class WebApplicationExtensions
                         Target = r.Target,
                         To = r.To,
                         Timeout = r.Timeout,
+                        Priority = r.Priority,
                         Hosts = [.. r.Hosts],
                         Ips = [.. r.Ips],
                         Auth = r.Auth

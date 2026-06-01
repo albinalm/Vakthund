@@ -169,6 +169,8 @@ The `path` value is matched by YARP. Vakthund accepts common catch-all paths suc
 
 Add `hosts` when the same proxy should split traffic by host or subdomain. Exact hosts such as `api.example.test`, wildcard subdomains such as `*.api.example.test`, and `*` are supported.
 
+Add `priority` when multiple routes can match the same request and one should win. Higher values are matched first, and the default is `0`.
+
 When a routes file is present, it takes priority over `TARGET`.
 
 Routes can also include auth expectations. By default these give the UI enough context to explain why a request failed authentication or authorization:

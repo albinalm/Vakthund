@@ -112,6 +112,7 @@ public class AuditDiskStoreTests : IDisposable
             Path = "/api/**",
             Target = "https://backend.internal",
             Timeout = "1h",
+            Priority = 10,
             Hosts = ["api.example.test"],
             Ips = ["203.0.113.*"],
             Auth = new AuthExpectation
@@ -131,6 +132,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal("/api/**", result.MatchedRoute.Path);
         Assert.Equal("https://backend.internal", result.MatchedRoute.Target);
         Assert.Equal("1h", result.MatchedRoute.Timeout);
+        Assert.Equal(10, result.MatchedRoute.Priority);
         Assert.Equal(["api.example.test"], result.MatchedRoute.Hosts);
         Assert.Equal(["203.0.113.*"], result.MatchedRoute.Ips);
         AuthExpectation auth = Assert.IsType<AuthExpectation>(result.MatchedRoute.Auth);

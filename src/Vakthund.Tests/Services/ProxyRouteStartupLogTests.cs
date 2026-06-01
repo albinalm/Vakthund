@@ -23,6 +23,7 @@ public class ProxyRouteStartupLogTests
         Assert.Equal("/logs/**", entry.UpstreamPath);
         Assert.Null(entry.RewritePath);
         Assert.Null(entry.Timeout);
+        Assert.Equal(0, entry.Priority);
         Assert.Empty(entry.Hosts);
         Assert.Empty(entry.Ips);
     }
@@ -75,6 +76,22 @@ public class ProxyRouteStartupLogTests
         ]));
 
         Assert.Equal("1h", entry.Timeout);
+    }
+
+    [Fact]
+    public void BuildEntries_IncludesPriority()
+    {
+        ProxyRouteLogEntry entry = Assert.Single(ProxyRouteStartupLog.BuildEntries(
+        [
+            new VakthundRoute
+            {
+                Path = "/api/generate",
+                Target = "http://localhost:5000",
+                Priority = 10
+            }
+        ]));
+
+        Assert.Equal(10, entry.Priority);
     }
 
     [Fact]

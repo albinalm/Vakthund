@@ -8,7 +8,8 @@ public class ProxyRouteMatcher
     {
         return routes?
             .Where(route => RouteHostsMatch(route.Hosts, host) && RouteMatches(route.Path, path))
-            .OrderByDescending(route => RouteSpecificity(route.Path))
+            .OrderByDescending(route => route.Priority)
+            .ThenByDescending(route => RouteSpecificity(route.Path))
             .ThenByDescending(route => HostSpecificity(route.Hosts))
             .FirstOrDefault();
     }

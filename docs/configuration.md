@@ -76,6 +76,7 @@ Each route has:
 - `target`: the upstream base URL.
 - `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
 - `timeout`: optional per-route proxy timeout. Use milliseconds, `hh:mm:ss`, or a value ending in `ms`, `s`, `m`, or `h`. Vakthund applies this to both YARP's route timeout and forwarder activity timeout. Use `disable` to disable both.
+- `priority`: optional integer route priority. Higher numbers are matched before lower numbers. The default is `0`.
 - `ips`: optional client IP whitelist for the route. Values can be exact IPs, CIDR ranges, or trailing IPv4 wildcards such as `203.0.*` and `203.0.113.*`.
 - `auth`: optional route auth contract. This can be an inline auth object or the name of an auth contract defined under `auths`. By default it is used by the UI to explain auth failures. Set `auth.enforce: true` to make the proxy enforce the same contract before forwarding.
 
@@ -107,6 +108,23 @@ routes:
 
 The same timeout can also be written as `3600000`, `3600s`, `60m`, or `01:00:00`.
 Without this setting, YARP's forwarder activity timeout defaults to 100 seconds while waiting for response headers or other request/response activity. Route `timeout` does not control the TCP connect timeout; use `Proxy:ConnectTimeoutSeconds` for that.
+
+When multiple routes can match the same request, Vakthund uses the highest `priority` first. Routes with the same priority fall back to path and host specificity. This is useful for public exceptions in front of an authenticated catch-all route:
+
+```yaml
+routes:
+  - path: /identity/v1/external-id
+    hosts:
+      - api.example.test
+    target: http://api
+    priority: 10
+
+  - path: /**
+    hosts:
+      - api.example.test
+    target: http://api
+    auth: api-auth
+```
 
 To restrict a route by client IP, add `ips`:
 
