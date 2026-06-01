@@ -1,7 +1,19 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<pre class="overflow-x-auto rounded border border-gray-800 bg-gray-950 p-3 font-mono text-xs leading-relaxed"><code @ref="_codeRef" class="language-@_language">@_formatted</code></pre>
+<div class="overflow-hidden rounded border border-gray-800 bg-gray-950">
+    <div class="flex justify-end border-b border-gray-800 px-2 py-1">
+        <button type="button"
+                title="@CopyTitle"
+                aria-label="@CopyTitle"
+                @onclick="CopyAsync"
+                class="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-100 focus:outline-none">
+            <span class="material-symbols-outlined text-sm">@CopyIcon</span>
+            <span>@CopyLabel</span>
+        </button>
+    </div>
+    <pre class="overflow-x-auto p-3 font-mono text-xs leading-relaxed"><code @ref="_codeRef" class="language-@_language">@_formatted</code></pre>
+</div>
 
 @code {
     [Parameter, EditorRequired] public string Content { get; set; } = "";
@@ -12,6 +24,14 @@
     private string _formatted = "";
     private string _language = "plaintext";
     private readonly CancellationTokenSource _cts = new();
+    private CancellationTokenSource? _copyResetCts;
+    private bool _copied;
+    private bool _copyFailed;
+    private bool _highlightPending;
+
+    private string CopyIcon => _copied ? "check" : _copyFailed ? "error" : "content_copy";
+    private string CopyLabel => _copied ? "Copied" : _copyFailed ? "Failed" : "Copy";
+    private string CopyTitle => _copied ? "Copied to clipboard" : _copyFailed ? "Copy failed" : "Copy to clipboard";
 
     protected override void OnParametersSet()
     {
@@ -19,11 +39,13 @@
         {
             _formatted = Content;
             _language = Language;
+            _highlightPending = true;
             return;
         }
 
         string? hinted = ContentType is not null ? ContentTypeToLanguage(ContentType) : null;
         (_formatted, _language) = FormatAndDetect(Content, hinted);
+        _highlightPending = true;
     }
 
     private static string? ContentTypeToLanguage(string contentType)
@@ -42,11 +64,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (_highlightPending)
         {
             try
             {
-                await JS.InvokeVoidAsync("hljs.highlightElement", _cts.Token, _codeRef);
+                await JS.InvokeVoidAsync("highlightCodeElement", _cts.Token, _codeRef);
+                _highlightPending = false;
             }
             catch
             {
@@ -54,8 +77,44 @@
         }
     }
 
+    private async Task CopyAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("copyToClipboard", _cts.Token, _formatted);
+            _copied = true;
+            _copyFailed = false;
+        }
+        catch
+        {
+            _copied = false;
+            _copyFailed = true;
+        }
+
+        _copyResetCts?.Cancel();
+        _copyResetCts?.Dispose();
+        _copyResetCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+        _ = ResetCopyStateAsync(_copyResetCts.Token);
+    }
+
+    private async Task ResetCopyStateAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(1500, ct);
+            _copied = false;
+            _copyFailed = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
     public void Dispose()
     {
+        _copyResetCts?.Cancel();
+        _copyResetCts?.Dispose();
         _cts.Cancel();
         _cts.Dispose();
     }
