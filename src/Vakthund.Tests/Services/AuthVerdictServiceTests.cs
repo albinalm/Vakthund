@@ -125,6 +125,46 @@ public class AuthVerdictServiceTests
     }
 
     [Fact]
+    public void Evaluate_ReturnsExpectationMismatchVerdict_WhenSubjectDoesNotMatchRoute()
+    {
+        var service = new AuthVerdictService();
+        var token = new ParsedToken
+        {
+            Scheme = "Bearer",
+            JwtPayloadJson = "{}",
+            Claims = new TokenClaimSummary
+            {
+                Subject = "user-456",
+                Issuer = "https://issuer.example",
+                Audiences = ["orders-api"]
+            }
+        };
+        var config = new ProxyConfig
+        {
+            Routes =
+            [
+                new ProxyRouteInfo
+                {
+                    Path = "/api/**",
+                    Target = "http://localhost:5000",
+                    Auth = new AuthExpectation
+                    {
+                        Subject = "user-123",
+                        Issuer = "https://issuer.example",
+                        Audience = "orders-api"
+                    }
+                }
+            ]
+        };
+
+        AuthVerdict verdict = service.Evaluate(Entry(401), [token], config, Now);
+
+        Assert.Equal(AuthVerdictSeverity.Error, verdict.Severity);
+        Assert.Equal("Token does not match route auth expectations.", verdict.Title);
+        Assert.Contains("Expected subject 'user-123'", verdict.Detail);
+    }
+
+    [Fact]
     public void Evaluate_ReturnsMatchesVerdict_WhenTokenMatchesRouteExpectations()
     {
         var service = new AuthVerdictService();
@@ -134,6 +174,7 @@ public class AuthVerdictServiceTests
             JwtPayloadJson = "{}",
             Claims = new TokenClaimSummary
             {
+                Subject = "user-123",
                 Issuer = "https://issuer.example",
                 Audiences = ["orders-api"],
                 Scopes = ["orders.read"],
@@ -151,6 +192,7 @@ public class AuthVerdictServiceTests
                     Target = "http://localhost:5000",
                     Auth = new AuthExpectation
                     {
+                        Subject = "user-123",
                         Issuer = "https://issuer.example",
                         Audience = "orders-api",
                         Scopes = ["orders.read"],

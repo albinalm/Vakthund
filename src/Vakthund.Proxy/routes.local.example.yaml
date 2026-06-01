@@ -1,6 +1,7 @@
 auths:
   - name: local-api
-    enforced: false
+    enforce: false
+    subject:
     issuer:
     audience:
     audiences: []

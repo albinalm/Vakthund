@@ -178,7 +178,8 @@ routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: false
+      enforce: false
+      subject: user-123
       issuer: https://login.example.com
       audience: orders-api
       scopes:
@@ -191,14 +192,15 @@ routes:
 
 Open a captured request and check the auth verdict to see whether the bearer token matches the configured route expectations.
 
-Set `enforced: true` when the proxy should reject unauthenticated or unauthorized requests before forwarding them:
+Set `enforce: true` when the proxy should reject unauthenticated or unauthorized requests before forwarding them:
 
 ```yaml
 routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: true
+      enforce: true
+      subject: user-123
       issuer: https://login.example.com
       audience: orders-api
       scopes:

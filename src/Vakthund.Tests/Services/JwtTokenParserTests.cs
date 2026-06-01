@@ -87,6 +87,19 @@ public class JwtTokenParserTests
     }
 
     [Fact]
+    public void Parse_IgnoresDatadogTagsHeader()
+    {
+        var parser = new JwtTokenParser();
+
+        IReadOnlyList<ParsedToken> parsed = parser.Parse(new Dictionary<string, string>
+        {
+            ["X-Datadog-Tags"] = "_dd.p.tid=6a1d4d8300000000,_dd.p.dm=-3"
+        });
+
+        Assert.Empty(parsed);
+    }
+
+    [Fact]
     public void Parse_DecryptsJwe_WithRouteKey()
     {
         byte[] routeKey = BuildSymmetricKey(1);

@@ -27,6 +27,7 @@ public class RouteAuthPoliciesTests
                 Auth = new AuthExpectation
                 {
                     Enforced = true,
+                    Subject = "user-123",
                     Issuer = "https://issuer.example",
                     Audience = "orders-api",
                     Scopes = ["orders.read"],
@@ -109,17 +110,25 @@ public class RouteAuthPoliciesTests
     }
 
     [Fact]
-    public async Task RoutePolicy_RequiresConfiguredScopesAndRoles()
+    public async Task RoutePolicy_RequiresConfiguredSubjectScopesAndRoles()
     {
         using ServiceProvider provider = BuildEnforcedRouteServiceProvider();
         var authorization = provider.GetRequiredService<IAuthorizationService>();
         var matchingUser = new ClaimsPrincipal(new ClaimsIdentity(
         [
+            new Claim("sub", "user-123"),
+            new Claim("scope", "orders.read orders.write"),
+            new Claim("roles", "admin")
+        ], RouteAuthPolicies.SchemeName(0)));
+        var wrongSubjectUser = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("sub", "user-456"),
             new Claim("scope", "orders.read orders.write"),
             new Claim("roles", "admin")
         ], RouteAuthPolicies.SchemeName(0)));
         var missingScopeUser = new ClaimsPrincipal(new ClaimsIdentity(
         [
+            new Claim("sub", "user-123"),
             new Claim("scope", "orders.write"),
             new Claim("roles", "admin")
         ], RouteAuthPolicies.SchemeName(0)));
@@ -128,12 +137,17 @@ public class RouteAuthPoliciesTests
             matchingUser,
             null,
             RouteAuthPolicies.PolicyName(0));
+        AuthorizationResult wrongSubjectResult = await authorization.AuthorizeAsync(
+            wrongSubjectUser,
+            null,
+            RouteAuthPolicies.PolicyName(0));
         AuthorizationResult missingScopeResult = await authorization.AuthorizeAsync(
             missingScopeUser,
             null,
             RouteAuthPolicies.PolicyName(0));
 
         Assert.True(matchingResult.Succeeded);
+        Assert.False(wrongSubjectResult.Succeeded);
         Assert.False(missingScopeResult.Succeeded);
     }
 
@@ -200,6 +214,7 @@ public class RouteAuthPoliciesTests
                 Auth = new AuthExpectation
                 {
                     Enforced = true,
+                    Subject = "user-123",
                     Issuer = "https://issuer.example",
                     Audience = "orders-api",
                     Scopes = ["orders.read"],

@@ -123,6 +123,11 @@ public static class RouteAuthPolicies
             policy.AuthenticationSchemes.Add(schemeName);
             policy.RequireAuthenticatedUser();
 
+            if (!string.IsNullOrWhiteSpace(auth.Subject))
+            {
+                policy.RequireAssertion(context => HasClaimValue(context.User, auth.Subject!, "sub", ClaimTypes.NameIdentifier));
+            }
+
             string[] scopes = RequiredValues(auth.Scopes ?? []);
             if (scopes.Length > 0)
             {
@@ -167,7 +172,7 @@ public static class RouteAuthPolicies
             }
 
             throw new InvalidOperationException(
-                $"Route '{route.Path}' has auth.enforced set to true, but no signing key source. " +
+                $"Route '{route.Path}' has auth.enforce set to true, but no signing key source. " +
             "Set auth.jwksUrl, auth.openIdConfigurationUrl, or an absolute auth.issuer for OIDC discovery.");
         }
     }
@@ -245,4 +250,9 @@ public static class RouteAuthPolicies
         return requiredValues.All(required =>
             actualValues.Contains(required, StringComparer.OrdinalIgnoreCase));
     }
+
+    private static bool HasClaimValue(ClaimsPrincipal user, string requiredValue, params string[] claimTypes) =>
+        user.Claims.Any(claim =>
+            claimTypes.Any(type => string.Equals(type, claim.Type, StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(claim.Value, requiredValue, StringComparison.Ordinal));
 }

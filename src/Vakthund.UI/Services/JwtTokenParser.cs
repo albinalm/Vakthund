@@ -68,6 +68,11 @@ public class JwtTokenParser
 
         if (partCount == 5)
         {
+            if (!LooksLikeCompactJwe(token))
+            {
+                return null;
+            }
+
             return DecodeJwe(name, scheme, token, jwe);
         }
 
@@ -173,6 +178,36 @@ public class JwtTokenParser
     private static bool IsConfigured(JweDecryptionConfig? jwe) =>
         jwe is not null &&
         (jwe.KeyType.HasValue || !string.IsNullOrWhiteSpace(jwe.Key));
+
+    private static bool LooksLikeCompactJwe(string token)
+    {
+        string[] parts = token.Split('.');
+        if (parts.Length != 5 ||
+            string.IsNullOrWhiteSpace(parts[0]) ||
+            string.IsNullOrWhiteSpace(parts[2]) ||
+            string.IsNullOrWhiteSpace(parts[3]) ||
+            string.IsNullOrWhiteSpace(parts[4]))
+        {
+            return false;
+        }
+
+        string? headerJson = DecodeBase64UrlJson(parts[0]);
+        if (headerJson is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(headerJson);
+            return !string.IsNullOrWhiteSpace(ReadString(doc.RootElement, "alg")) &&
+                   !string.IsNullOrWhiteSpace(ReadString(doc.RootElement, "enc"));
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static object BuildKey(JweOptions opts) => opts.KeyType switch
     {

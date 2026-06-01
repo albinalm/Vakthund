@@ -116,6 +116,7 @@ public class AuditDiskStoreTests : IDisposable
             Ips = ["203.0.113.*"],
             Auth = new AuthExpectation
             {
+                Subject = "user-123",
                 Issuer = "https://auth.example.com",
                 Audience = "my-api",
                 Scopes = ["read:users"],
@@ -134,6 +135,7 @@ public class AuditDiskStoreTests : IDisposable
         Assert.Equal(["203.0.113.*"], result.MatchedRoute.Ips);
         AuthExpectation auth = Assert.IsType<AuthExpectation>(result.MatchedRoute.Auth);
         JweDecryptionConfig jwe = Assert.IsType<JweDecryptionConfig>(auth.Jwe);
+        Assert.Equal("user-123", auth.Subject);
         Assert.Equal("https://auth.example.com", auth.Issuer);
         Assert.Equal("my-api", auth.Audience);
         Assert.Equal(["read:users"], auth.Scopes);

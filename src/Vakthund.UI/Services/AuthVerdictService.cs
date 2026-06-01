@@ -190,7 +190,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
             Severity = AuthVerdictSeverity.Warning,
             Title = title,
             Detail = detail,
-            Hints = ["Next likely checks: issuer, audience, scopes, roles, signing key, or server-side authorization policy."]
+            Hints = ["Next likely checks: subject, issuer, audience, scopes, roles, signing key, or server-side authorization policy."]
         };
 
     private static AuthVerdict ExpectationMismatchVerdict(ProxyRouteInfo route, IReadOnlyList<string> mismatches) =>
@@ -223,7 +223,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
         {
             Severity = AuthVerdictSeverity.Info,
             Title = "Token matches configured route expectations.",
-            Detail = $"Matched route {route.Path}. Issuer, audience, scopes, roles, and local time claims match the configured checks. Signature validation is only applied when JWKS or OIDC metadata is available."
+            Detail = $"Matched route {route.Path}. Subject, issuer, audience, scopes, roles, and local time claims match the configured checks. Signature validation is only applied when JWKS or OIDC metadata is available."
         };
 
     private static AuthVerdict UsableTokenVerdict() =>
@@ -231,7 +231,7 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
         {
             Severity = AuthVerdictSeverity.Info,
             Title = "Bearer token decoded.",
-            Detail = "The token decoded and its local time claims look usable. Signature, issuer, audience, scope, and role validation are not enabled yet."
+            Detail = "The token decoded and its local time claims look usable. Signature, subject, issuer, audience, scope, and role validation are not enabled yet."
         };
 
     private static string BackendRejectedDetail(bool routeExpectsAuth, string failureType) =>
@@ -249,12 +249,26 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
             return ["Token claims could not be parsed."];
         }
 
+        AddSubjectMismatch(mismatches, expectation, claims);
         AddIssuerMismatch(mismatches, expectation, claims);
         AddAudienceMismatch(mismatches, expectation, claims);
         AddMissingValues(mismatches, "scope", expectation.Scopes ?? [], claims.Scopes);
         AddMissingValues(mismatches, "role", expectation.Roles ?? [], claims.Roles);
 
         return mismatches;
+    }
+
+    private static void AddSubjectMismatch(List<string> mismatches, AuthExpectation expectation, TokenClaimSummary claims)
+    {
+        if (string.IsNullOrWhiteSpace(expectation.Subject))
+        {
+            return;
+        }
+
+        if (!string.Equals(expectation.Subject, claims.Subject, StringComparison.Ordinal))
+        {
+            mismatches.Add($"Expected subject '{expectation.Subject}', token has '{claims.Subject ?? "missing"}'.");
+        }
     }
 
     private static void AddIssuerMismatch(List<string> mismatches, AuthExpectation expectation, TokenClaimSummary claims)
@@ -311,7 +325,8 @@ public class AuthVerdictService(JwtSignatureValidator? signatureValidator = null
 
     private static bool HasAuthExpectation(AuthExpectation? expectation) =>
         expectation is not null &&
-        (!string.IsNullOrWhiteSpace(expectation.Issuer) ||
+        (!string.IsNullOrWhiteSpace(expectation.Subject) ||
+         !string.IsNullOrWhiteSpace(expectation.Issuer) ||
          !string.IsNullOrWhiteSpace(expectation.Audience) ||
          expectation.Audiences?.Count > 0 ||
          expectation.Scopes?.Count > 0 ||

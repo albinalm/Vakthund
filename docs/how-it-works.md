@@ -68,7 +68,7 @@ For auth verdicts, the UI extracts common JWT header and payload fields:
 - `alg`, `kid`, and `typ` from the token header.
 - `iss`, `aud`, `sub`, `scope`, `scp`, `roles`, `client_id`, `azp`, `exp`, `nbf`, and `iat` from the payload.
 
-When the matched route has auth expectations, Vakthund compares those claims against the configured issuer, audience, scopes, and roles. Configured route expectations are treated as truth. If the route sets `auth.enforced: true`, the proxy also uses the same contract to reject unauthenticated or unauthorized bearer JWTs before forwarding.
+When the matched route has auth expectations, Vakthund compares those claims against the configured subject, issuer, audience, scopes, and roles. Configured route expectations are treated as truth. If the route sets `auth.enforce: true`, the proxy also uses the same contract to reject unauthenticated or unauthorized bearer JWTs before forwarding.
 
 For JWT signatures, Vakthund uses signing keys in this order:
 
@@ -77,7 +77,7 @@ For JWT signatures, Vakthund uses signing keys in this order:
 3. OIDC metadata derived from the configured route issuer.
 4. OIDC metadata derived from the token issuer.
 
-Token issuer metadata is used only as signature-validation enrichment. It is not used to infer required issuer, audience, scopes, or roles.
+Token issuer metadata is used only as signature-validation enrichment. It is not used to infer required subject, issuer, audience, scopes, or roles.
 
 For JWE tokens, it can show the token header without a key. If a JWE key is configured, it attempts to decrypt the payload.
 

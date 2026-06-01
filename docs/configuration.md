@@ -77,7 +77,7 @@ Each route has:
 - `to`: optional upstream path prefix. For catch-all routes, the remaining request path is appended to `to`. For exact routes, `to` replaces the request path.
 - `timeout`: optional per-route proxy timeout. Use milliseconds, `hh:mm:ss`, or a value ending in `ms`, `s`, `m`, or `h`. Vakthund applies this to both YARP's route timeout and forwarder activity timeout. Use `disable` to disable both.
 - `ips`: optional client IP whitelist for the route. Values can be exact IPs, CIDR ranges, or trailing IPv4 wildcards such as `203.0.*` and `203.0.113.*`.
-- `auth`: optional route auth contract. This can be an inline auth object or the name of an auth contract defined under `auths`. By default it is used by the UI to explain auth failures. Set `auth.enforced: true` to make the proxy enforce the same contract before forwarding.
+- `auth`: optional route auth contract. This can be an inline auth object or the name of an auth contract defined under `auths`. By default it is used by the UI to explain auth failures. Set `auth.enforce: true` to make the proxy enforce the same contract before forwarding.
 
 Vakthund supports `/**` and paths ending in `/**` as catch-all patterns. These are converted to YARP catch-all routes internally. A path such as `/logs/**` matches `/logs`, `/logs/`, and deeper paths such as `/logs/archive/2026`.
 
@@ -128,14 +128,14 @@ Explicit route file configuration still wins. Relative paths in `Proxy:RoutesFil
 
 ## Route Auth
 
-Routes can declare the auth contract the target service expects. Without `enforced: true`, this is inspection context only:
+Routes can declare the auth contract the target service expects. Without `enforce: true`, this is inspection context only:
 
 ```yaml
 routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: false
+      enforce: false
       issuer: https://login.example.com
       audience: orders-api
       scopes:
@@ -155,7 +155,7 @@ If multiple routes use the same auth contract, define it once under `auths` and 
 ```yaml
 auths:
   - name: orders-auth
-    enforced: true
+    enforce: true
     issuer: https://login.example.com
     audience: orders-api
     scopes:
@@ -172,16 +172,17 @@ routes:
 
 Auth names must be non-empty and unique. A route that references an unknown auth name fails startup instead of silently running without auth context.
 
-The UI compares decoded bearer tokens against the matched route and reports issuer, audience, scope, role, expiry, and not-before mismatches in the auth verdict.
+The UI compares decoded bearer tokens against the matched route and reports subject, issuer, audience, scope, role, expiry, and not-before mismatches in the auth verdict.
 
-Set `enforced: true` to authenticate and authorize at the proxy before traffic reaches the destination:
+Set `enforce: true` to authenticate and authorize at the proxy before traffic reaches the destination:
 
 ```yaml
 routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: true
+      enforce: true
+      subject: user-123
       issuer: https://login.example.com
       audience: orders-api
       scopes:
@@ -191,7 +192,14 @@ routes:
       jwksUrl: https://login.example.com/.well-known/jwks.json
 ```
 
-When `enforced` is true, Vakthund configures a YARP authorization policy for the route. Missing, malformed, expired, unsigned, or untrusted bearer JWTs are rejected before forwarding. Scope and role mismatches are rejected by the route policy.
+When `enforce` is true, Vakthund configures a YARP authorization policy for the route. Missing, malformed, expired, unsigned, or untrusted bearer JWTs are rejected before forwarding. Subject, scope, and role mismatches are rejected by the route policy.
+
+Use `subject` to require an exact JWT `sub` value:
+
+```yaml
+auth:
+  subject: f5f9a3a3-dd26-4cc0-8720-51a609d9cf66
+```
 
 Enforced auth requires a signing key source. Configure one of:
 
@@ -206,14 +214,14 @@ routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: true
+      enforce: true
       issuer: https://login.example.com
       audience: orders-api
       openIdConfigurationUrl: https://login.example.com/.well-known/openid-configuration
 ```
 
 If `issuer` is an absolute URL and no key endpoint is set, the proxy and UI try `<issuer>/.well-known/openid-configuration`.
-If no key endpoint or route issuer is configured, the UI may also try OIDC discovery from the token's `iss` claim. Token-derived metadata is used only for signature validation enrichment; configured route expectations remain the source of truth for issuer, audience, scope, and role checks.
+If no key endpoint or route issuer is configured, the UI may also try OIDC discovery from the token's `iss` claim. Token-derived metadata is used only for signature validation enrichment; configured route expectations remain the source of truth for subject, issuer, audience, scope, and role checks.
 
 Signing keys are resolved in this order:
 
@@ -222,11 +230,11 @@ Signing keys are resolved in this order:
 3. OIDC metadata derived from `auth.issuer`.
 4. OIDC metadata derived from the token `iss` claim.
 
-The auth verdict labels the signing key source so inferred metadata is visible in the UI. Proxy enforcement does not infer metadata from the token issuer; `enforced: true` routes must declare their signing key source through route config.
+The auth verdict labels the signing key source so inferred metadata is visible in the UI. Proxy enforcement does not infer metadata from the token issuer; `enforce: true` routes must declare their signing key source through route config.
 
 `auth.jwe` is optional route-level JWE decryption config. It lets the UI decrypt encrypted bearer tokens for the matched route so the claims can be inspected and compared with the route auth contract.
 
-`auth.enforced` decides whether the route auth contract is only inspection context or is also enforced by the proxy. JWE decryption is still for inspection of encrypted tokens; proxy enforcement validates bearer JWT signatures with `jwksUrl`, `openIdConfigurationUrl`, or issuer-based OIDC metadata.
+`auth.enforce` decides whether the route auth contract is only inspection context or is also enforced by the proxy. JWE decryption is still for inspection of encrypted tokens; proxy enforcement validates bearer JWT signatures with `jwksUrl`, `openIdConfigurationUrl`, or issuer-based OIDC metadata.
 
 Supported JWE key types are `Rsa`, `Ec`, `Symmetric`, and `Password`. `Rsa` and `Ec` expect PEM private keys, `Symmetric` expects base64-encoded key bytes, and `Password` expects a plain password string.
 
@@ -259,7 +267,7 @@ routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: false
+      enforce: false
       issuer: https://login.example.com
       audience: orders-api
       jwe:
@@ -272,7 +280,7 @@ routes:
   - path: /api/orders/**
     target: http://host.docker.internal:5000
     auth:
-      enforced: true
+      enforce: true
       issuer: https://login.example.com
       audience: orders-api
       jwksUrl: https://login.example.com/.well-known/jwks.json
@@ -284,7 +292,7 @@ routes:
           -----END PRIVATE KEY-----
 ```
 
-Use `enforced: false` when the route auth block should only power UI inspection and auth verdicts. Use `enforced: true` when the proxy should reject unauthenticated or unauthorized requests before forwarding.
+Use `enforce: false` when the route auth block should only power UI inspection and auth verdicts. Use `enforce: true` when the proxy should reject unauthenticated or unauthorized requests before forwarding.
 
 Supported `auth.jwe.keyType` values:
 

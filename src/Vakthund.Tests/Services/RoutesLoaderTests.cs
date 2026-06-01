@@ -331,7 +331,7 @@ public class RoutesLoaderTests
     }
 
     [Fact]
-    public void TryLoad_MapsRouteAuthEnforced()
+    public void TryLoad_MapsRouteAuthEnforce()
     {
         string filePath = Path.Combine(AppContext.BaseDirectory, $"{Guid.NewGuid():N}.yaml");
         File.WriteAllText(
@@ -341,7 +341,8 @@ public class RoutesLoaderTests
               - path: /api/**
                 target: https://backend.example.test
                 auth:
-                  enforced: true
+                  enforce: true
+                  subject: user-123
                   issuer: https://issuer.example
                   audience: orders-api
                   scopes:
@@ -354,6 +355,7 @@ public class RoutesLoaderTests
 
             Assert.NotNull(route.Auth);
             Assert.True(route.Auth.Enforced);
+            Assert.Equal("user-123", route.Auth.Subject);
             Assert.Equal("https://issuer.example", route.Auth.Issuer);
             Assert.Equal("orders-api", route.Auth.Audience);
             Assert.Equal(["orders.read"], route.Auth.Scopes);
@@ -373,7 +375,8 @@ public class RoutesLoaderTests
             """
             auths:
               - name: shared-auth
-                enforced: true
+                enforce: true
+                subject: user-123
                 issuer: https://issuer.example
                 audience: orders-api
                 scopes:
@@ -397,9 +400,11 @@ public class RoutesLoaderTests
             Assert.NotNull(firstAuth);
             Assert.NotNull(secondAuth);
             Assert.True(firstAuth.Enforced);
+            Assert.Equal("user-123", firstAuth.Subject);
             Assert.Equal("https://issuer.example", firstAuth.Issuer);
             Assert.Equal("orders-api", firstAuth.Audience);
             Assert.Equal(["orders.read"], firstAuth.Scopes);
+            Assert.Equal("user-123", secondAuth.Subject);
             Assert.Equal("https://issuer.example", secondAuth.Issuer);
             Assert.NotSame(firstAuth, secondAuth);
         }

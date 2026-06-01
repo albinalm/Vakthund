@@ -52,10 +52,10 @@ The auth verdict summarizes what Vakthund can prove about a request's bearer tok
 - Expired token.
 - Token that is not valid yet because of `nbf`.
 - JWE payload that is encrypted or failed to decrypt.
-- Issuer, audience, scope, and role mismatches against route auth expectations.
+- Subject, issuer, audience, scope, and role mismatches against route auth expectations.
 - Signature validation problems such as unknown `kid`, unsupported algorithm, invalid signature, or failed metadata/key loading.
 
-When a route has auth expectations configured, those expectations are treated as the source of truth. If no key endpoint is configured, Vakthund may infer OIDC metadata from the token's `iss` claim to validate the signature, but token-derived metadata is shown as enrichment and is not treated as the API contract.
+When a route has auth expectations configured, those expectations are treated as the source of truth. If no key endpoint is configured, Vakthund may infer OIDC metadata from the token's `iss` claim to validate the signature, but token-derived metadata is shown as enrichment and is not treated as the API contract for subject, issuer, audience, scopes, or roles.
 
 The verdict also shows common claim values such as subject, issuer, audience, scopes, roles, and client id when they are present.
 
@@ -69,7 +69,7 @@ The configuration page reads the proxy management endpoint and shows:
 - Proxy queue size.
 - Route-level JWE key type when configured through `auth.jwe`.
 
-Routes with auth expectations show issuer, audience, scope, and role chips in the configuration page. Routes that enforce auth at the proxy also show an `enforced` chip.
+Routes with auth expectations show subject, issuer, audience, scope, and role chips in the configuration page. Routes that enforce auth at the proxy also show an `enforce` chip.
 
 If the configuration page cannot reach the proxy, check the UI `HUB` setting and make sure the proxy management port is reachable from the UI container.
 

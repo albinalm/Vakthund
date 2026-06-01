@@ -148,6 +148,7 @@ public static class RoutesLoader
         return new AuthExpectation
         {
             Enforced = auth.Enforced,
+            Subject = auth.Subject,
             Issuer = auth.Issuer,
             Audience = auth.Audience,
             Audiences = auth.Audiences is null ? [] : [.. auth.Audiences],
