@@ -11,6 +11,8 @@ Ingress / TLS termination -> Vakthund proxy -> application A
 
 Keep TLS termination, public access rules, and certificates at the ingress. Send each application's traffic to the proxy's traffic port. Give the UI private access to its management port and restrict access to the UI itself.
 
+For an operator UI reachable outside a private network, configure [UI Authentication](ui-authentication.md). OIDC login and an explicit account allowlist protect the dashboard; the proxy's management port stays internal. Configure UI ingress trust separately with `UI:ForwardedHeaders`.
+
 ## Routes across namespaces
 
 In Kubernetes, the proxy and UI can live in a dedicated `vakthund` namespace. Target application Services by their namespace-qualified DNS names. For a cluster using the default `cluster.local` domain:

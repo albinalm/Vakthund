@@ -1,5 +1,7 @@
 # Configuration
 
+For operator login to the inspection dashboard, see [UI Authentication](ui-authentication.md). UI login is separate from route authentication, which governs traffic forwarded to your applications.
+
 Vakthund can be configured with environment variables or `appsettings.json`. In Docker, environment variables are usually the most direct option.
 
 ## Proxy Settings

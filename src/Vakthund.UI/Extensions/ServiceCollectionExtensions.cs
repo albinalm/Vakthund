@@ -15,6 +15,8 @@ public static class ServiceCollectionExtensions
         if (config["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
             services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath));
         services.AddRazorComponents().AddInteractiveServerComponents();
+        services.AddUiAuthentication(config);
+        services.AddUiForwardedHeaders(config);
         services.AddRadzenComponents();
         services.AddSingleton<AuditHubConnection>();
         services.AddKeyedSingleton<IAuditStore, AuditMemoryStore>(StorageMode.Memory);

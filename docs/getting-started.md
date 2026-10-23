@@ -1,5 +1,7 @@
 # Getting Started
 
+For a remotely accessible dashboard, configure [UI Authentication](ui-authentication.md) before exposing it to operators. OIDC support is optional and disabled by default for local use.
+
 The easiest way to run Vakthund is Docker Compose. Run the proxy and the UI together, point your client at the proxy, and let the proxy forward traffic to the real target.
 
 ## Recommended Compose Setup
