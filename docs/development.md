@@ -66,6 +66,10 @@ docker compose --profile load down --volumes
 
 The same k6 suite can be used for heavier local load checks. See `src/Vakthund.Tests/k6/README.md` for the exposed ports, tunables, and summary output.
 
+## Preview Images
+
+Pushing source changes to a feature branch runs `.github/workflows/preview.yml`. After a successful Release build and unit tests, it publishes proxy and UI images tagged `preview-<full-commit-sha>` to GHCR. Use these immutable commit-specific tags to dogfood changes before merging. The regular release workflow continues to own versioned releases and `latest`.
+
 ## Projects
 
 - `Vakthund.Proxy`: ASP.NET Core reverse proxy and audit stream.

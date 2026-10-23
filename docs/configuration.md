@@ -138,7 +138,7 @@ routes:
       - 10.0.0.0/8
 ```
 
-Requests outside the whitelist are rejected by the proxy before forwarding. Vakthund resolves the client IP from `X-Forwarded-For`, then `X-Real-IP`, then the direct remote address. When running behind Nginx, keep setting those headers at the trusted edge proxy.
+Requests outside the whitelist are rejected by the proxy before forwarding. Vakthund uses the connection's remote address after trusted forwarded-header processing. Behind an ingress or reverse proxy, configure `Proxy:ForwardedHeaders:KnownProxies` or `KnownNetworks`; raw `X-Forwarded-For` and `X-Real-IP` headers do not establish client identity. See [Shared Deployment](shared-deployment.md#trusted-ingress-headers) for trust configuration and examples.
 
 When no explicit routes file is configured, `Vakthund.Proxy` automatically checks for `routes.local.yaml` beside the running proxy. During local source runs this is `src/Vakthund.Proxy/routes.local.yaml`; for a published non-Docker app it is a sidecar file next to the published proxy. The source local file is ignored by Git so each developer can keep machine-specific targets and auth expectations locally. Use `src/Vakthund.Proxy/routes.local.example.yaml` as the committed shape.
 

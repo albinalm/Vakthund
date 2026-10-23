@@ -1,0 +1,71 @@
+name: Preview images
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - src/**
+      - .github/workflows/preview.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore src/Vakthund.sln
+      - run: dotnet build src/Vakthund.sln --configuration Release --no-restore
+      - run: dotnet test src/Vakthund.sln --configuration Release --no-build
+
+  publish:
+    name: Publish preview
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: proxy
+            dockerfile: src/Vakthund.Proxy/Dockerfile
+          - component: ui
+            dockerfile: src/Vakthund.UI/Dockerfile
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        if: matrix.component == 'ui'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/Vakthund.UI/package-lock.json
+      - name: Build UI CSS
+        if: matrix.component == 'ui'
+        working-directory: src/Vakthund.UI
+        run: |
+          npm ci
+          npm run css:build
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish commit-specific image
+        uses: docker/build-push-action@v7
+        with:
+          context: src
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/vakthund-${{ matrix.component }}:preview-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
