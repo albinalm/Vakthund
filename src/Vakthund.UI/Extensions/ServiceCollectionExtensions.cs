@@ -1,4 +1,5 @@
 using Radzen;
+using Microsoft.AspNetCore.DataProtection;
 using Vakthund.UI.Enums;
 using Vakthund.UI.Options;
 using Vakthund.UI.Services;
@@ -11,6 +12,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddVakthundUi(this IServiceCollection services, IConfiguration config)
     {
         services.Configure<UiOptions>(config.GetSection("UI"));
+        if (config["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+            services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath));
         services.AddRazorComponents().AddInteractiveServerComponents();
         services.AddRadzenComponents();
         services.AddSingleton<AuditHubConnection>();

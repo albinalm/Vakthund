@@ -12,6 +12,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddVakthundProxy(this IServiceCollection services, IConfiguration config, IReadOnlyList<VakthundRoute> routes)
     {
         services.Configure<ProxyOptions>(config.GetSection("Proxy"));
+        services.AddProxyForwardedHeaders(config);
         services.AddSingleton<IReadOnlyList<VakthundRoute>>(routes);
         services.AddSignalR();
         services.AddSingleton<AuditQueue>();

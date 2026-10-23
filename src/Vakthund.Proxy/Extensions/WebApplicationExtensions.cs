@@ -93,6 +93,8 @@ public static class WebApplicationExtensions
         int managementPort = config.GetValue("Management:Port", 8081);
         string[] proxyHostPatterns = config.GetSection("Proxy:HostPatterns").Get<string[]>() ?? ["*:8080"];
 
+        app.UseForwardedHeaders();
+        app.UseRouting();
         app.UseWhen(
             ctx => ctx.Connection.LocalPort != managementPort,
             branch => branch.UseMiddleware<RequestInterceptor>());
