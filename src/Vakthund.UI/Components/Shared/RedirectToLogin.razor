@@ -1,0 +1,11 @@
+@inject NavigationManager Navigation
+
+<p class="px-6 py-8 text-gray-400">Your session has ended. Returning to sign in.</p>
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            Navigation.NavigateTo("auth/login?returnUrl=" + Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery), forceLoad: true);
+    }
+}

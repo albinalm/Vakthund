@@ -19,12 +19,11 @@
     <link rel="stylesheet" href="@Assets["Vakthund.UI.styles.css"]"/>
     <style>pre code.hljs { background: transparent; padding: 0; }</style>
     <ImportMap/>
-    <HeadOutlet/>
+    <HeadOutlet @rendermode="PageRenderMode"/>
 </head>
 
 <body>
-<Routes/>
-<RadzenComponents @rendermode="InteractiveServer"/>
+<Routes @rendermode="PageRenderMode"/>
 <ReconnectModal/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 <script src="@Assets["_framework/blazor.web.js"]"></script>
