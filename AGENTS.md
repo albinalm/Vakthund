@@ -49,6 +49,7 @@ This section gates everything below it. Satisfy it before writing code.
 
 ## UI and audit rules
 
+- Prefer short, verb-led action labels. Let layout and controls communicate purpose; omit explanatory subtext unless it provides necessary error or recovery guidance.
 - Reuse existing shared components, Radzen controls, Tailwind utilities, and theme tokens before introducing new UI patterns. Keep light/dark behavior consistent with `Styles/app.css` and `wwwroot/theme.js`.
 - Keep I/O out of render paths. Use component lifecycle methods and services; marshal background UI updates through `InvokeAsync`, and cancel timers and unsubscribe events when disposing components.
 - Resolve `IAuditStore` using the configured `StorageMode`, following the existing keyed registrations. Keep memory and SQLite implementations consistent for filtering, counts, deletion, and retention.
